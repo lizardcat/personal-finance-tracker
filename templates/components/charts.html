@@ -1,0 +1,547 @@
+# templates/components/charts.html """
+<!-- Dashboard Chart Components -->
+
+<!-- Income vs Expenses Chart -->
+<div class="chart-container">
+  <canvas id="incomeExpenseChart" width="400" height="200"></canvas>
+</div>
+
+<!-- Category Spending Breakdown -->
+<div class="chart-container">
+  <canvas id="categoryBreakdownChart" width="400" height="200"></canvas>
+</div>
+
+<!-- Milestone Progress Chart -->
+<div class="chart-container">
+  <canvas id="milestoneProgressChart" width="400" height="300"></canvas>
+</div>
+
+<!-- Budget Performance Chart -->
+<div class="chart-container">
+  <canvas id="budgetPerformanceChart" width="400" height="250"></canvas>
+</div>
+
+<!-- Work Hour Tracking Chart -->
+<div class="chart-container">
+  <canvas id="workHourChart" width="400" height="200"></canvas>
+</div>
+
+<!-- Monthly Trend Chart -->
+<div class="chart-container">
+  <canvas id="monthlyTrendChart" width="400" height="250"></canvas>
+</div>
+
+<script>
+  // Chart configurations and data management
+  class FinanceCharts {
+    constructor() {
+      this.charts = {};
+      this.colors = {
+        income: "#10b981",
+        expense: "#ef4444",
+        primary: "#2563eb",
+        success: "#10b981",
+        warning: "#f59e0b",
+        danger: "#ef4444",
+        info: "#06b6d4",
+        secondary: "#6b7280",
+      };
+    }
+
+    // Income vs Expenses Line Chart
+    createIncomeExpenseChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.months,
+          datasets: [
+            {
+              label: "Income",
+              data: data.income,
+              borderColor: this.colors.income,
+              backgroundColor: this.colors.income + "20",
+              fill: true,
+              tension: 0.4,
+            },
+            {
+              label: "Expenses",
+              data: data.expenses,
+              borderColor: this.colors.expense,
+              backgroundColor: this.colors.expense + "20",
+              fill: true,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Income vs Expenses Trend",
+            },
+            legend: {
+              position: "top",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return new Intl.NumberFormat("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                    minimumFractionDigits: 0,
+                  }).format(value);
+                },
+              },
+            },
+          },
+          interaction: {
+            intersect: false,
+            mode: "index",
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Category Spending Doughnut Chart
+    createCategoryChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              data: data.values,
+              backgroundColor: [
+                this.colors.primary,
+                this.colors.success,
+                this.colors.warning,
+                this.colors.danger,
+                this.colors.info,
+                this.colors.secondary,
+                "#8b5cf6",
+                "#f97316",
+              ],
+              borderWidth: 2,
+              borderColor: "#ffffff",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Spending by Category",
+            },
+            legend: {
+              position: "bottom",
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const label = context.label || "";
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: ${value.toLocaleString()} KES (${percentage}%)`;
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Milestone Progress Horizontal Bar Chart
+    createMilestoneChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      const progressData = data.milestones.map(
+        (m) => (m.current / m.target) * 100
+      );
+      const backgroundColors = data.milestones.map((m) =>
+        m.current >= m.target ? this.colors.success : this.colors.primary
+      );
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.milestones.map((m) => m.name),
+          datasets: [
+            {
+              label: "Progress %",
+              data: progressData,
+              backgroundColor: backgroundColors,
+              borderColor: backgroundColors,
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Financial Milestone Progress",
+            },
+            legend: {
+              display: false,
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const milestone = data.milestones[context.dataIndex];
+                  return [
+                    `Progress: ${context.parsed.x.toFixed(1)}%`,
+                    `Current: ${milestone.current.toLocaleString()} KES`,
+                    `Target: ${milestone.target.toLocaleString()} KES`,
+                    `Remaining: ${(
+                      milestone.target - milestone.current
+                    ).toLocaleString()} KES`,
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: function (value) {
+                  return value + "%";
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Budget Performance Chart
+    createBudgetChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.categories,
+          datasets: [
+            {
+              label: "Budgeted",
+              data: data.budgeted,
+              backgroundColor: this.colors.primary + "60",
+              borderColor: this.colors.primary,
+              borderWidth: 1,
+            },
+            {
+              label: "Spent",
+              data: data.spent,
+              backgroundColor: data.spent.map((spent, index) =>
+                spent > data.budgeted[index]
+                  ? this.colors.danger + "60"
+                  : this.colors.success + "60"
+              ),
+              borderColor: data.spent.map((spent, index) =>
+                spent > data.budgeted[index]
+                  ? this.colors.danger
+                  : this.colors.success
+              ),
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Budget vs Actual Spending",
+            },
+            legend: {
+              position: "top",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return new Intl.NumberFormat("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                    minimumFractionDigits: 0,
+                  }).format(value);
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Work Hour Tracking Chart
+    createWorkHourChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.weeks,
+          datasets: [
+            {
+              label: "Hours Worked",
+              data: data.actual_hours,
+              borderColor: this.colors.primary,
+              backgroundColor: this.colors.primary + "20",
+              fill: true,
+              tension: 0.4,
+            },
+            {
+              label: "Target Hours",
+              data: data.target_hours,
+              borderColor: this.colors.success,
+              backgroundColor: "transparent",
+              borderDash: [5, 5],
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Weekly Work Hours Tracking",
+            },
+            legend: {
+              position: "top",
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return value + "h";
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Monthly Trend Chart
+    createMonthlyTrendChart(canvasId, data) {
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return null;
+
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].destroy();
+      }
+
+      this.charts[canvasId] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.months,
+          datasets: [
+            {
+              label: "Net Income",
+              data: data.net_income,
+              backgroundColor: data.net_income.map((value) =>
+                value >= 0
+                  ? this.colors.success + "80"
+                  : this.colors.danger + "80"
+              ),
+              borderColor: data.net_income.map((value) =>
+                value >= 0 ? this.colors.success : this.colors.danger
+              ),
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: "Monthly Net Income Trend",
+            },
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return new Intl.NumberFormat("en-KE", {
+                    style: "currency",
+                    currency: "KES",
+                    minimumFractionDigits: 0,
+                    signDisplay: "always",
+                  }).format(value);
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return this.charts[canvasId];
+    }
+
+    // Utility method to destroy all charts
+    destroyAllCharts() {
+      Object.values(this.charts).forEach((chart) => {
+        if (chart) chart.destroy();
+      });
+      this.charts = {};
+    }
+
+    // Utility method to update chart data
+    updateChart(canvasId, newData) {
+      if (this.charts[canvasId]) {
+        this.charts[canvasId].data = newData;
+        this.charts[canvasId].update();
+      }
+    }
+
+    // Load and display all dashboard charts
+    async loadDashboardCharts() {
+      try {
+        const response = await fetch("/api/dashboard_charts");
+        const data = await response.json();
+
+        if (data.success) {
+          // Create all charts with the loaded data
+          this.createIncomeExpenseChart(
+            "incomeExpenseChart",
+            data.income_expense
+          );
+          this.createCategoryChart(
+            "categoryBreakdownChart",
+            data.category_breakdown
+          );
+          this.createMilestoneChart(
+            "milestoneProgressChart",
+            data.milestone_progress
+          );
+          this.createBudgetChart(
+            "budgetPerformanceChart",
+            data.budget_performance
+          );
+          this.createWorkHourChart("workHourChart", data.work_hours);
+          this.createMonthlyTrendChart("monthlyTrendChart", data.monthly_trend);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard charts:", error);
+      }
+    }
+  }
+
+  // Initialize charts when page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    window.financeCharts = new FinanceCharts();
+
+    // Load charts if we're on the dashboard
+    if (document.querySelector("#incomeExpenseChart")) {
+      window.financeCharts.loadDashboardCharts();
+    }
+  });
+
+  // Chart utility functions
+  function refreshCharts() {
+    if (window.financeCharts) {
+      window.financeCharts.loadDashboardCharts();
+    }
+  }
+
+  function exportChart(canvasId, filename) {
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+      const link = document.createElement("a");
+      link.download = filename || "chart.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+  }
+
+  // Responsive chart handling
+  window.addEventListener("resize", function () {
+    Object.values(window.financeCharts?.charts || {}).forEach((chart) => {
+      if (chart) chart.resize();
+    });
+  });
+</script>
+
+<style>
+  .chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 2rem;
+  }
+
+  .chart-container canvas {
+    max-height: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .chart-container {
+      height: 250px;
+    }
+  }
+</style>
+"""
