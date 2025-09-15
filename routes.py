@@ -107,21 +107,47 @@ def transactions():
     
     # Apply filters
     if category_filter:
-        query = query.filter(Transaction.category_id == category_filter)
+        try:
+            category_id = int(category_filter)
+            query = query.filter(Transaction.category_id == category_id)
+        except (ValueError, TypeError):
+            pass
     
     if type_filter:
         query = query.filter(Transaction.transaction_type == type_filter)
     
     if search_query:
+        from sqlalchemy import or_
         query = query.filter(
-            Transaction.description.contains(search_query) |
-            Transaction.payee.contains(search_query)
+            or_(
+                Transaction.description.contains(search_query),
+                Transaction.payee.contains(search_query)
+            )
         )
     
     # Paginate results
-    transactions = query.order_by(desc(Transaction.transaction_date), 
-                                desc(Transaction.created_at))\
-        .paginate(page=page, per_page=per_page, error_out=False)
+    try:
+        transactions = query.order_by(desc(Transaction.transaction_date),
+                                    desc(Transaction.created_at))\
+            .paginate(page=page, per_page=per_page, error_out=False)
+    except Exception as e:
+        # Fallback for SQLAlchemy compatibility
+        print(f"Pagination error: {e}")
+        transactions = query.order_by(desc(Transaction.transaction_date),
+                                    desc(Transaction.created_at)).all()
+        # Create a simple pagination object
+        class SimplePagination:
+            def __init__(self, items):
+                self.items = items
+                self.pages = 1
+                self.page = 1
+                self.has_prev = False
+                self.has_next = False
+                self.prev_num = None
+                self.next_num = None
+            def iter_pages(self):
+                return [1]
+        transactions = SimplePagination(transactions)
     
     # Get categories for filter dropdown
     categories = BudgetCategory.query.filter_by(user_id=current_user.id)\
@@ -135,6 +161,7 @@ def transactions():
                          transactions=transactions,
                          categories=categories,
                          page_summary=page_summary,
+                         today=date.today(),
                          filters={
                              'category': category_filter,
                              'type': type_filter,
