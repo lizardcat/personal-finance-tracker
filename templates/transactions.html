@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-list me-2"></i>Transactions</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+        <i class="fas fa-plus me-2"></i>Add Transaction
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" name="category">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if filters.category == category.id|string %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <select class="form-select" name="type">
+                    <option value="">All Types</option>
+                    <option value="income" {% if filters.type == 'income' %}selected{% endif %}>Income</option>
+                    <option value="expense" {% if filters.type == 'expense' %}selected{% endif %}>Expense</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" name="search" value="{{ filters.search or '' }}" placeholder="Search description or payee">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-outline-primary d-block w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary -->
+{% if page_summary %}
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h6>Total Income</h6>
+                <h4>{{ format_currency(page_summary.total_income) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h6>Total Expenses</h6>
+                <h4>{{ format_currency(page_summary.total_expenses) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h6>Net Amount</h6>
+                <h4>{{ format_currency(page_summary.net_amount) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Transactions Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if transactions.items %}
+                        {% for transaction in transactions.items %}
+                        <tr>
+                            <td>{{ transaction.transaction_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>
+                                {% if transaction.budget_category %}
+                                    <span class="badge bg-secondary">{{ transaction.budget_category.name }}</span>
+                                {% else %}
+                                    <span class="text-muted">Uncategorized</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                    {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}{{ format_currency(transaction.amount) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ transaction.transaction_type.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTransaction({{ transaction.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction({{ transaction.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                No transactions found.
+                                <br>
+                                <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
+                                    Add your first transaction
+                                </button>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if transactions.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if transactions.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.transactions', page=transactions.prev_num, **filters) }}">Previous</a>
+            </li>
+        {% endif %}
+
+        {% for page_num in transactions.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != transactions.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('main.transactions', page=page_num, **filters) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if transactions.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('main.transactions', page=transactions.next_num, **filters) }}">Next</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Add Transaction Modal -->
+<div class="modal fade" id="addTransactionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transactionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" name="transaction_type" required>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="transaction_date" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" name="description" placeholder="What was this transaction for?" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" name="amount" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" name="category_id">
+                            <option value="">Select Category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payee (Optional)</label>
+                        <input type="text" class="form-control" name="payee" placeholder="Who was paid or paid you?">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account</label>
+                        <select class="form-select" name="account">
+                            <option value="checking">Checking</option>
+                            <option value="savings">Savings</option>
+                            <option value="credit">Credit Card</option>
+                            <option value="cash">Cash</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tags (Optional)</label>
+                        <input type="text" class="form-control" name="tags" placeholder="Comma-separated tags">
+                        <div class="form-text">e.g., work, travel, grocery</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitTransaction()">Add Transaction</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editingTransactionId = null;
+
+// Set today's date as default when modal opens
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="transaction_date"]').value = today;
+});
+
+// Reset modal when shown
+document.getElementById('addTransactionModal').addEventListener('show.bs.modal', function() {
+    editingTransactionId = null;
+    document.querySelector('.modal-title').textContent = 'Add Transaction';
+    document.getElementById('transactionForm').reset();
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('input[name="transaction_date"]').value = today;
+});
+
+async function submitTransaction() {
+    const form = document.getElementById('transactionForm');
+    const formData = new FormData(form);
+
+    const transactionData = {
+        transaction_type: formData.get('transaction_type'),
+        transaction_date: formData.get('transaction_date'),
+        description: formData.get('description'),
+        amount: parseFloat(formData.get('amount')),
+        category_id: formData.get('category_id') || null,
+        payee: formData.get('payee') || '',
+        account: formData.get('account') || 'checking',
+        tags: formData.get('tags') || ''
+    };
+
+    try {
+        const url = editingTransactionId ?
+            `/api/transactions/${editingTransactionId}` :
+            '/api/transactions/';
+        const method = editingTransactionId ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(transactionData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // Close modal
+            document.querySelector('#addTransactionModal .btn-close').click();
+
+            // Show success message
+            showNotification(result.message || 'Transaction saved successfully!', 'success');
+
+            // Reload page to show updated data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(result.error || 'Failed to save transaction', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Network error. Please try again.', 'danger');
+    }
+}
+
+async function editTransaction(id) {
+    try {
+        const response = await fetch(`/api/transactions/${id}`);
+        const transaction = await response.json();
+
+        if (response.ok) {
+            editingTransactionId = id;
+
+            // Populate form
+            document.querySelector('[name="transaction_type"]').value = transaction.transaction_type;
+            document.querySelector('[name="transaction_date"]').value = transaction.transaction_date;
+            document.querySelector('[name="description"]').value = transaction.description;
+            document.querySelector('[name="amount"]').value = transaction.amount;
+            document.querySelector('[name="category_id"]').value = transaction.category ? transaction.category.id : '';
+            document.querySelector('[name="payee"]').value = transaction.payee || '';
+            document.querySelector('[name="account"]').value = transaction.account || 'checking';
+            document.querySelector('[name="tags"]').value = transaction.tags || '';
+
+            // Update modal title
+            document.querySelector('.modal-title').textContent = 'Edit Transaction';
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('addTransactionModal')).show();
+        } else {
+            showNotification('Failed to load transaction details', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Network error. Please try again.', 'danger');
+    }
+}
+
+async function deleteTransaction(id) {
+    if (!confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/transactions/${id}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showNotification(result.message || 'Transaction deleted successfully!', 'success');
+
+            // Remove the row from the table
+            const row = document.querySelector(`tr[data-transaction-id="${id}"]`);
+            if (row) {
+                row.remove();
+            }
+
+            // Reload page to update summary
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification(result.error || 'Failed to delete transaction', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Network error. Please try again.', 'danger');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Add transaction IDs to table rows for easier deletion
+document.querySelectorAll('tbody tr').forEach((row, index) => {
+    const deleteBtn = row.querySelector('button[onclick*="deleteTransaction"]');
+    if (deleteBtn) {
+        const onclickValue = deleteBtn.getAttribute('onclick');
+        const id = onclickValue.match(/\d+/)[0];
+        row.setAttribute('data-transaction-id', id);
+    }
+});
+</script>
+{% endblock %}
