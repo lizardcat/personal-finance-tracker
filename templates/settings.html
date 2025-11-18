@@ -3,202 +3,178 @@
 {% block title %}Settings - Personal Finance Tracker{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-cog me-2"></i>Settings</h2>
+
+<!-- Page Header -->
+<div style="padding: 32px 0 24px 0;">
+    <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-cog"></i>
+        Settings
+    </h1>
+    <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Manage your account and preferences</p>
 </div>
 
-<div class="row">
+<div class="md-grid md-grid-cols-2">
     <!-- User Profile -->
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="fas fa-user me-2"></i>User Profile</h5>
-            </div>
-            <div class="card-body">
-                <form>
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-control" value="{{ user.username }}" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" value="{{ user.email }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Default Currency</label>
-                        <select class="form-select">
-                            <option value="USD" {% if user.default_currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
-                            <option value="KES" {% if user.default_currency == 'KES' %}selected{% endif %}>KES - Kenyan Shilling</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monthly Income</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" value="{{ user.monthly_income or 0 }}" step="0.01">
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-primary" onclick="updateProfile()">
-                        Update Profile
-                    </button>
-                </form>
-            </div>
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title"><i class="fas fa-user" style="margin-right: 8px;"></i>User Profile</h5>
+        </div>
+        <div class="md-card-body">
+            <form id="profileForm">
+                <div class="md-text-field">
+                    <input type="text" id="username" value="{{ user.username }}" readonly disabled style="opacity: 0.6;">
+                    <label for="username">Username</label>
+                </div>
+
+                <div class="md-text-field">
+                    <input type="email" id="email" name="email" value="{{ user.email }}" placeholder=" ">
+                    <label for="email">Email</label>
+                </div>
+
+                <div class="md-text-field">
+                    <select id="currency" name="default_currency">
+                        <option value="USD" {% if user.default_currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
+                        <option value="KES" {% if user.default_currency == 'KES' %}selected{% endif %}>KES - Kenyan Shilling</option>
+                    </select>
+                    <label for="currency">Default Currency</label>
+                </div>
+
+                <div class="md-text-field">
+                    <input type="number" id="monthly_income" name="monthly_income" value="{{ user.monthly_income or 0 }}" step="0.01" placeholder=" ">
+                    <label for="monthly_income">Monthly Income ($)</label>
+                </div>
+
+                <button type="button" class="md-btn md-btn-filled" style="width: 100%; justify-content: center;" onclick="updateProfile()">
+                    Update Profile
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Budget Categories Management -->
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0"><i class="fas fa-tags me-2"></i>Budget Categories</h5>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                    <i class="fas fa-plus me-1"></i>Add Category
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">Income Categories</h6>
-                            <small class="text-muted">Sources of income</small>
-                        </div>
-                        <span class="badge bg-success rounded-pill">3</span>
+    <!-- Budget Categories Summary -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title"><i class="fas fa-tags" style="margin-right: 8px;"></i>Budget Categories</h5>
+        </div>
+        <div class="md-card-body" style="padding: 0;">
+            <ul class="md-list">
+                <li class="md-list-item">
+                    <div class="md-list-item-icon" style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(67, 160, 71, 0.12); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-plus-circle" style="color: var(--md-success);"></i>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">Expense Categories</h6>
-                            <small class="text-muted">Where money is spent</small>
-                        </div>
-                        <span class="badge bg-danger rounded-pill">8</span>
+                    <div class="md-list-item-text">
+                        <div class="md-list-item-primary">Income Categories</div>
+                        <div class="md-list-item-secondary">Sources of income</div>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">Savings Categories</h6>
-                            <small class="text-muted">Financial goals</small>
-                        </div>
-                        <span class="badge bg-primary rounded-pill">2</span>
+                    <span class="md-chip md-chip-success">{{ user.budget_categories|selectattr('category_type', 'equalto', 'income')|list|length }}</span>
+                </li>
+                <div class="md-divider" style="margin: 0;"></div>
+                <li class="md-list-item">
+                    <div class="md-list-item-icon" style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(229, 57, 53, 0.12); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-minus-circle" style="color: var(--md-error);"></i>
                     </div>
-                </div>
+                    <div class="md-list-item-text">
+                        <div class="md-list-item-primary">Expense Categories</div>
+                        <div class="md-list-item-secondary">Where money is spent</div>
+                    </div>
+                    <span class="md-chip md-chip-error">{{ user.budget_categories|selectattr('category_type', 'equalto', 'expense')|list|length }}</span>
+                </li>
+                <div class="md-divider" style="margin: 0;"></div>
+                <li class="md-list-item">
+                    <div class="md-list-item-icon" style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(30, 136, 229, 0.12); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-piggy-bank" style="color: var(--md-primary);"></i>
+                    </div>
+                    <div class="md-list-item-text">
+                        <div class="md-list-item-primary">Savings Categories</div>
+                        <div class="md-list-item-secondary">Financial goals</div>
+                    </div>
+                    <span class="md-chip md-chip-primary">{{ user.budget_categories|selectattr('category_type', 'equalto', 'saving')|list|length }}</span>
+                </li>
+            </ul>
+            <div style="padding: 16px 24px; text-align: center; border-top: 1px solid var(--md-surface-container-high);">
+                <a href="{{ url_for('main.budget') }}" class="md-btn md-btn-text">
+                    Manage Categories
+                    <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+                </a>
             </div>
         </div>
     </div>
 
     <!-- Data Management -->
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="fas fa-database me-2"></i>Data Management</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary" onclick="exportData()">
-                        <i class="fas fa-download me-2"></i>Export All Data
-                    </button>
-                    <button class="btn btn-outline-info" onclick="backupData()">
-                        <i class="fas fa-save me-2"></i>Create Backup
-                    </button>
-                    <button class="btn btn-outline-warning" onclick="importData()">
-                        <i class="fas fa-upload me-2"></i>Import Data
-                    </button>
-                    <hr>
-                    <button class="btn btn-outline-danger" onclick="clearData()">
-                        <i class="fas fa-trash me-2"></i>Clear All Data
-                    </button>
-                </div>
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title"><i class="fas fa-database" style="margin-right: 8px;"></i>Data Management</h5>
+        </div>
+        <div class="md-card-body">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="md-btn md-btn-outlined" style="width: 100%; justify-content: flex-start;" onclick="exportData()">
+                    <i class="fas fa-download"></i>
+                    Export All Data
+                </button>
+                <button class="md-btn md-btn-outlined" style="width: 100%; justify-content: flex-start;" onclick="backupData()">
+                    <i class="fas fa-save"></i>
+                    Create Backup
+                </button>
+                <button class="md-btn md-btn-outlined" style="width: 100%; justify-content: flex-start;" onclick="importData()">
+                    <i class="fas fa-upload"></i>
+                    Import Data
+                </button>
+                <div class="md-divider"></div>
+                <button class="md-btn md-btn-text" style="width: 100%; justify-content: flex-start; color: var(--md-error);" onclick="clearData()">
+                    <i class="fas fa-trash"></i>
+                    Clear All Data
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Account Security -->
-    <div class="col-lg-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="fas fa-shield-alt me-2"></i>Account Security</h5>
-            </div>
-            <div class="card-body">
-                <form>
-                    <div class="mb-3">
-                        <label class="form-label">Current Password</label>
-                        <input type="password" class="form-control" placeholder="Enter current password">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">New Password</label>
-                        <input type="password" class="form-control" placeholder="Enter new password">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" placeholder="Confirm new password">
-                    </div>
-                    <button type="button" class="btn btn-warning" onclick="changePassword()">
-                        Change Password
-                    </button>
-                </form>
-            </div>
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title"><i class="fas fa-shield-alt" style="margin-right: 8px;"></i>Account Security</h5>
         </div>
-    </div>
-
-    <!-- Application Info -->
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Application Information</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Account Created:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</p>
-                        <p><strong>Total Categories:</strong> {{ user.budget_categories|length }}</p>
-                        <p><strong>Total Transactions:</strong> {{ user.transactions|length }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Version:</strong> 1.0.0</p>
-                        <p><strong>Last Login:</strong> Today</p>
-                        <p><strong>Data Storage:</strong> Local Database</p>
-                    </div>
+        <div class="md-card-body">
+            <form id="passwordForm">
+                <div class="md-text-field">
+                    <input type="password" id="current_password" name="current_password" placeholder=" ">
+                    <label for="current_password">Current Password</label>
                 </div>
-            </div>
+
+                <div class="md-text-field">
+                    <input type="password" id="new_password" name="new_password" placeholder=" ">
+                    <label for="new_password">New Password</label>
+                </div>
+
+                <div class="md-text-field">
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder=" ">
+                    <label for="confirm_password">Confirm New Password</label>
+                </div>
+
+                <button type="button" class="md-btn md-btn-filled" style="width: 100%; justify-content: center; background-color: var(--md-warning);" onclick="changePassword()">
+                    <i class="fas fa-key"></i>
+                    Change Password
+                </button>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Add Category Modal -->
-<div class="modal fade" id="addCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Budget Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Application Info -->
+<div class="md-card">
+    <div class="md-card-header">
+        <h5 class="md-card-title"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Application Information</h5>
+    </div>
+    <div class="md-card-body">
+        <div class="md-grid md-grid-cols-2">
+            <div>
+                <p style="margin: 0 0 12px 0;"><strong>Account Created:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</p>
+                <p style="margin: 0 0 12px 0;"><strong>Total Categories:</strong> {{ user.budget_categories|length }}</p>
+                <p style="margin: 0;"><strong>Total Transactions:</strong> {{ user.transactions|length }}</p>
             </div>
-            <div class="modal-body">
-                <form id="categoryForm">
-                    <div class="mb-3">
-                        <label class="form-label">Category Name</label>
-                        <input type="text" class="form-control" name="name" placeholder="e.g., Groceries" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Category Type</label>
-                        <select class="form-select" name="category_type" required>
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                            <option value="saving">Savings Goal</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Allocated Amount</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" name="allocated_amount" step="0.01" min="0" placeholder="0.00" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Color</label>
-                        <input type="color" class="form-control form-control-color" name="color" value="#007bff">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitCategory()">Add Category</button>
+            <div>
+                <p style="margin: 0 0 12px 0;"><strong>Version:</strong> 1.0.0</p>
+                <p style="margin: 0 0 12px 0;"><strong>Last Login:</strong> Today</p>
+                <p style="margin: 0;"><strong>Data Storage:</strong> Local Database</p>
             </div>
         </div>
     </div>
@@ -209,35 +185,70 @@
 {% block extra_js %}
 <script>
 function updateProfile() {
-    alert('Profile update functionality coming soon!');
+    showMaterialSnackbar('Profile update functionality coming soon!', 'info');
 }
 
 function changePassword() {
-    alert('Password change functionality coming soon!');
+    const current = document.getElementById('current_password').value;
+    const newPass = document.getElementById('new_password').value;
+    const confirm = document.getElementById('confirm_password').value;
+
+    if (!current || !newPass || !confirm) {
+        showMaterialSnackbar('Please fill in all password fields', 'error');
+        return;
+    }
+
+    if (newPass !== confirm) {
+        showMaterialSnackbar('New passwords do not match', 'error');
+        return;
+    }
+
+    showMaterialSnackbar('Password change functionality coming soon!', 'info');
 }
 
 function exportData() {
-    alert('Data export functionality coming soon!');
+    showMaterialSnackbar('Data export functionality coming soon!', 'info');
 }
 
 function backupData() {
-    alert('Backup functionality coming soon!');
+    showMaterialSnackbar('Backup functionality coming soon!', 'info');
 }
 
 function importData() {
-    alert('Import functionality coming soon!');
+    showMaterialSnackbar('Import functionality coming soon!', 'info');
 }
 
 function clearData() {
     if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-        alert('Clear data functionality coming soon!');
+        showMaterialSnackbar('Clear data functionality coming soon!', 'warning');
     }
 }
 
-function submitCategory() {
-    alert('Add category functionality coming soon!');
-    // For now, just close the modal
-    document.querySelector('#addCategoryModal .btn-close').click();
+function showMaterialSnackbar(message, type = 'info') {
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+
+    const colors = {
+        'success': 'var(--md-success)',
+        'error': 'var(--md-error)',
+        'warning': 'var(--md-warning)',
+        'info': 'var(--md-info)'
+    };
+    snackbar.style.backgroundColor = colors[type] || colors.info;
+
+    snackbar.innerHTML = `
+        <span>${message}</span>
+        <button class="md-btn md-btn-text" style="color: white; padding: 8px 16px;" onclick="this.parentElement.remove()">
+            Dismiss
+        </button>
+    `;
+
+    document.body.appendChild(snackbar);
+
+    setTimeout(() => {
+        snackbar.style.opacity = '0';
+        setTimeout(() => snackbar.parentNode && snackbar.remove(), 300);
+    }, 5000);
 }
 </script>
 {% endblock %}
