@@ -13,10 +13,16 @@
         </h1>
         <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Exchange Rate: 1 USD = {{ "%.2f"|format(exchange_rate) }} KES</p>
     </div>
-    <button class="md-btn md-btn-filled" onclick="openCategoryModal()">
-        <i class="fas fa-plus"></i>
-        Add Category
-    </button>
+    <div style="display: flex; gap: 12px;">
+        <button class="md-btn md-btn-outlined" onclick="openTransferModal()">
+            <i class="fas fa-exchange-alt"></i>
+            Transfer Budget
+        </button>
+        <button class="md-btn md-btn-filled" onclick="openCategoryModal()">
+            <i class="fas fa-plus"></i>
+            Add Category
+        </button>
+    </div>
 </div>
 
 <!-- YNAB Principles Banner -->
@@ -232,6 +238,61 @@
     </div>
 </div>
 
+<!-- Budget Transfer Modal -->
+<div id="transferModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Transfer Budget Between Categories</h5>
+        </div>
+        <div class="md-card-body">
+            <p style="color: var(--md-on-surface-variant); margin-bottom: 24px; font-size: 14px;">
+                Move budget allocation from one category to another. This is useful when you need to reallocate funds (YNAB Principle #3: Roll with the Punches).
+            </p>
+
+            <form id="transferForm">
+                <!-- From Category -->
+                <div class="md-text-field">
+                    <select id="fromCategory" required>
+                        <option value="">Select source category...</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" data-available="{{ category.available_amount }}">
+                            {{ category.name }} - Available: {{ format_currency(category.available_amount) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label for="fromCategory">From Category</label>
+                </div>
+
+                <!-- Transfer Amount -->
+                <div class="md-text-field">
+                    <input type="number" id="transferAmount" step="0.01" min="0.01" placeholder=" " required>
+                    <label for="transferAmount">Transfer Amount ($)</label>
+                </div>
+                <p id="availableAmount" style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: -12px; margin-bottom: 16px;">
+                    Select a category to see available amount
+                </p>
+
+                <!-- To Category -->
+                <div class="md-text-field">
+                    <select id="toCategory" required>
+                        <option value="">Select destination category...</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label for="toCategory">To Category</label>
+                </div>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeTransferModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitTransfer()">Transfer Budget</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -409,6 +470,100 @@ function showMaterialSnackbar(message, type = 'info') {
             }
         }, 300);
     }, 5000);
+}
+
+// Budget Transfer Functions
+function openTransferModal() {
+    document.getElementById('transferForm').reset();
+    document.getElementById('transferModal').style.display = 'flex';
+    document.getElementById('availableAmount').textContent = 'Select a category to see available amount';
+}
+
+function closeTransferModal() {
+    document.getElementById('transferModal').style.display = 'none';
+    document.getElementById('transferForm').reset();
+}
+
+// Close modal when clicking outside
+document.getElementById('transferModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTransferModal();
+    }
+});
+
+// Update available amount when from category changes
+document.getElementById('fromCategory').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const available = selected.getAttribute('data-available');
+
+    if (available) {
+        document.getElementById('availableAmount').textContent = `Available to transfer: $${parseFloat(available).toFixed(2)}`;
+        document.getElementById('availableAmount').style.color = parseFloat(available) > 0 ? 'var(--md-success)' : 'var(--md-error)';
+    } else {
+        document.getElementById('availableAmount').textContent = 'Select a category to see available amount';
+        document.getElementById('availableAmount').style.color = 'var(--md-on-surface-variant)';
+    }
+});
+
+async function submitTransfer() {
+    const form = document.getElementById('transferForm');
+
+    // Validate form
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const fromCategoryId = document.getElementById('fromCategory').value;
+    const toCategoryId = document.getElementById('toCategory').value;
+    const amount = parseFloat(document.getElementById('transferAmount').value);
+
+    // Validate same category
+    if (fromCategoryId === toCategoryId) {
+        showMaterialSnackbar('Cannot transfer to the same category', 'error');
+        return;
+    }
+
+    // Validate available amount
+    const fromCategory = document.getElementById('fromCategory').options[document.getElementById('fromCategory').selectedIndex];
+    const available = parseFloat(fromCategory.getAttribute('data-available'));
+
+    if (amount > available) {
+        showMaterialSnackbar(`Insufficient budget. Available: $${available.toFixed(2)}`, 'error');
+        return;
+    }
+
+    const transferData = {
+        from_category_id: parseInt(fromCategoryId),
+        to_category_id: parseInt(toCategoryId),
+        amount: amount
+    };
+
+    try {
+        const response = await fetch('/api/budget/transfer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(transferData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            closeTransferModal();
+            // Reload page to show updated budgets
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showMaterialSnackbar(data.error || 'Transfer failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error transferring budget:', error);
+        showMaterialSnackbar('An error occurred while transferring budget', 'error');
+    }
 }
 </script>
 {% endblock %}
