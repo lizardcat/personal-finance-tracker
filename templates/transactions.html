@@ -10,10 +10,16 @@
         <i class="fas fa-list"></i>
         Transactions
     </h1>
-    <button class="md-btn md-btn-filled" onclick="openTransactionModal()">
-        <i class="fas fa-plus"></i>
-        Add Transaction
-    </button>
+    <div style="display: flex; gap: 12px;">
+        <button class="md-btn md-btn-outlined" onclick="processRecurringTransactions()" title="Process due recurring transactions">
+            <i class="fas fa-sync-alt"></i>
+            Process Recurring
+        </button>
+        <button class="md-btn md-btn-filled" onclick="openTransactionModal()">
+            <i class="fas fa-plus"></i>
+            Add Transaction
+        </button>
+    </div>
 </div>
 
 <!-- Filters -->
@@ -252,6 +258,36 @@
                     <label for="transactionTags">Tags (Optional)</label>
                     <small style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: 4px;">e.g., work, travel, grocery</small>
                 </div>
+
+                <!-- Recurring Transaction Section -->
+                <div style="grid-column: 1 / -1; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--md-surface-container-high);">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+                        <input type="checkbox" id="isRecurring" name="recurring" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span style="font-weight: 500; color: var(--md-on-surface);">
+                            <i class="fas fa-sync-alt" style="color: var(--md-primary); margin-right: 4px;"></i>
+                            Make this a recurring transaction
+                        </span>
+                    </label>
+
+                    <div id="recurringOptions" style="display: none; padding-left: 32px;">
+                        <div class="md-text-field">
+                            <select name="recurring_period" id="recurringPeriod">
+                                <option value="">Select frequency...</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="biweekly">Bi-weekly (Every 2 weeks)</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="quarterly">Quarterly (Every 3 months)</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                            <label for="recurringPeriod">Recurring Frequency</label>
+                        </div>
+                        <p style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: 8px;">
+                            <i class="fas fa-info-circle"></i>
+                            This transaction will automatically repeat at the specified interval. The next occurrence will be created based on the transaction date.
+                        </p>
+                    </div>
+                </div>
             </form>
         </div>
         <div class="md-card-actions">
@@ -308,6 +344,8 @@ async function submitTransaction() {
 
     const formData = new FormData(form);
 
+    const isRecurring = document.getElementById('isRecurring').checked;
+
     const transactionData = {
         transaction_type: formData.get('transaction_type'),
         transaction_date: formData.get('transaction_date'),
@@ -316,8 +354,16 @@ async function submitTransaction() {
         category_id: formData.get('category_id') || null,
         payee: formData.get('payee') || '',
         account: formData.get('account') || 'checking',
-        tags: formData.get('tags') || ''
+        tags: formData.get('tags') || '',
+        recurring: isRecurring,
+        recurring_period: isRecurring ? formData.get('recurring_period') : null
     };
+
+    // Validate recurring period if recurring is checked
+    if (isRecurring && !transactionData.recurring_period) {
+        showMaterialSnackbar('Please select a recurring frequency', 'error');
+        return;
+    }
 
     try {
         const url = editingTransactionId ?
@@ -437,6 +483,50 @@ function showMaterialSnackbar(message, type = 'info') {
         snackbar.style.opacity = '0';
         setTimeout(() => snackbar.parentNode && snackbar.remove(), 300);
     }, 5000);
+}
+
+// Handle recurring checkbox
+document.getElementById('isRecurring').addEventListener('change', function() {
+    const recurringOptions = document.getElementById('recurringOptions');
+    const recurringPeriod = document.getElementById('recurringPeriod');
+
+    if (this.checked) {
+        recurringOptions.style.display = 'block';
+        recurringPeriod.required = true;
+    } else {
+        recurringOptions.style.display = 'none';
+        recurringPeriod.required = false;
+        recurringPeriod.value = '';
+    }
+});
+
+// Process recurring transactions function
+async function processRecurringTransactions() {
+    if (!confirm('This will create all due recurring transactions. Continue?')) {
+        return;
+    }
+
+    showMaterialSnackbar('Processing recurring transactions...', 'info');
+
+    try {
+        const response = await fetch('/api/transactions/recurring/process', {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            if (data.created_count > 0) {
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to process recurring transactions', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Network error. Please try again.', 'error');
+    }
 }
 </script>
 {% endblock %}

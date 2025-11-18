@@ -567,3 +567,170 @@ def create_bulk_transactions():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Failed to create transactions'}), 500
+
+@transactions_api_bp.route('/recurring', methods=['GET'])
+@login_required_api
+def get_recurring_transactions():
+    """Get all recurring transactions for the current user"""
+    recurring_transactions = Transaction.query.filter_by(
+        user_id=current_user.id,
+        recurring=True
+    ).order_by(desc(Transaction.created_at)).all()
+
+    result = []
+    for trans in recurring_transactions:
+        result.append({
+            'id': trans.id,
+            'amount': float(trans.amount),
+            'currency': trans.currency,
+            'description': trans.description,
+            'transaction_type': trans.transaction_type,
+            'transaction_date': trans.transaction_date.isoformat() if trans.transaction_date else None,
+            'payee': trans.payee,
+            'account': trans.account,
+            'tags': trans.tags,
+            'recurring_period': trans.recurring_period,
+            'category': {
+                'id': trans.budget_category.id,
+                'name': trans.budget_category.name,
+                'color': trans.budget_category.color
+            } if trans.budget_category else None,
+            'created_at': trans.created_at.isoformat() if trans.created_at else None
+        })
+
+    return jsonify({'recurring_transactions': result})
+
+@transactions_api_bp.route('/recurring/summary', methods=['GET'])
+@login_required_api
+def get_recurring_summary():
+    """Get summary of recurring transactions"""
+    from services.recurring_service import recurring_service
+
+    summary = recurring_service.get_recurring_transaction_summary(current_user.id)
+
+    return jsonify({
+        'total': summary['total'],
+        'by_period': summary['by_period'],
+        'by_type': summary['by_type'],
+        'total_monthly_impact': float(summary['total_monthly_impact'])
+    })
+
+@transactions_api_bp.route('/recurring/upcoming', methods=['GET'])
+@login_required_api
+def get_upcoming_recurring():
+    """Get upcoming recurring transaction occurrences"""
+    days_ahead = request.args.get('days', 30, type=int)
+    days_ahead = min(days_ahead, 365)  # Max 1 year
+
+    from services.recurring_service import recurring_service
+
+    upcoming = recurring_service.get_upcoming_occurrences(current_user.id, days_ahead)
+
+    return jsonify({'upcoming_occurrences': upcoming})
+
+@transactions_api_bp.route('/recurring/process', methods=['POST'])
+@login_required_api
+def process_recurring_transactions():
+    """Process recurring transactions for the current user (create due occurrences)"""
+    dry_run = request.args.get('dry_run', 'false').lower() == 'true'
+
+    from services.recurring_service import recurring_service
+
+    # Get only the user's recurring transactions
+    user_recurring = Transaction.query.filter_by(
+        user_id=current_user.id,
+        recurring=True
+    ).all()
+
+    created_count = 0
+    created_transactions = []
+    errors = []
+
+    try:
+        for template in user_recurring:
+            if recurring_service.should_create_occurrence(
+                template.transaction_date,
+                template.recurring_period
+            ):
+                if not dry_run:
+                    new_trans = recurring_service.create_recurring_occurrence(template)
+                    created_transactions.append({
+                        'id': new_trans.id,
+                        'description': new_trans.description,
+                        'amount': float(new_trans.amount),
+                        'date': new_trans.transaction_date.isoformat()
+                    })
+                    created_count += 1
+                else:
+                    # Dry run - just report what would be created
+                    next_date = recurring_service.get_next_occurrence_date(
+                        template.transaction_date,
+                        template.recurring_period
+                    )
+                    created_transactions.append({
+                        'description': f"{template.description} (Auto-generated)",
+                        'amount': float(template.amount),
+                        'date': next_date.isoformat(),
+                        'template_id': template.id
+                    })
+                    created_count += 1
+
+        if not dry_run:
+            db.session.commit()
+
+            # Log audit event
+            log_audit_event(
+                'recurring_transactions_processed',
+                user_id=current_user.id,
+                details=f'Created {created_count} recurring transaction occurrences'
+            )
+            current_app.logger.info(f'Processed recurring transactions for user {current_user.id}: {created_count} created')
+
+        return jsonify({
+            'success': True,
+            'message': f'{"Would create" if dry_run else "Created"} {created_count} transactions',
+            'created_count': created_count,
+            'created_transactions': created_transactions,
+            'dry_run': dry_run
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error processing recurring transactions: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to process recurring transactions'}), 500
+
+@transactions_api_bp.route('/recurring/<int:transaction_id>/stop', methods=['POST'])
+@login_required_api
+def stop_recurring_transaction(transaction_id):
+    """Stop a recurring transaction (mark as non-recurring)"""
+    transaction = Transaction.query.filter_by(
+        id=transaction_id,
+        user_id=current_user.id,
+        recurring=True
+    ).first()
+
+    if not transaction:
+        return jsonify({'error': 'Recurring transaction not found'}), 404
+
+    try:
+        transaction.recurring = False
+        transaction.recurring_period = None
+
+        db.session.commit()
+
+        # Log audit event
+        log_audit_event(
+            'recurring_transaction_stopped',
+            user_id=current_user.id,
+            details=f'Stopped recurring transaction: {transaction.description}'
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Stopped recurring transaction: {transaction.description}'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error stopping recurring transaction: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to stop recurring transaction'}), 500
