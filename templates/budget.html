@@ -14,6 +14,14 @@
         <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Exchange Rate: 1 USD = {{ "%.2f"|format(exchange_rate) }} KES</p>
     </div>
     <div style="display: flex; gap: 12px;">
+        <button class="md-btn md-btn-text" onclick="openTemplatesModal()" title="Load or manage budget templates">
+            <i class="fas fa-folder-open"></i>
+            Templates
+        </button>
+        <button class="md-btn md-btn-outlined" onclick="openSaveTemplateModal()" title="Save current budget as template">
+            <i class="fas fa-save"></i>
+            Save Template
+        </button>
         <button class="md-btn md-btn-outlined" onclick="openTransferModal()">
             <i class="fas fa-exchange-alt"></i>
             Transfer Budget
@@ -293,6 +301,58 @@
     </div>
 </div>
 
+<!-- Save Template Modal -->
+<div id="saveTemplateModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Save Budget as Template</h5>
+        </div>
+        <div class="md-card-body">
+            <p style="color: var(--md-on-surface-variant); margin-bottom: 24px; font-size: 14px;">
+                Save your current budget allocation as a reusable template. This will save all your categories and their allocated amounts.
+            </p>
+
+            <form id="saveTemplateForm">
+                <div class="md-text-field">
+                    <input type="text" id="templateName" placeholder=" " required>
+                    <label for="templateName">Template Name</label>
+                </div>
+
+                <div class="md-text-field">
+                    <textarea id="templateDescription" placeholder=" " rows="3"></textarea>
+                    <label for="templateDescription">Description (Optional)</label>
+                </div>
+
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 16px;">
+                    <input type="checkbox" id="setAsDefault" style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="font-size: 14px; color: var(--md-on-surface);">Set as default template</span>
+                </label>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeSaveTemplateModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitSaveTemplate()">Save Template</button>
+        </div>
+    </div>
+</div>
+
+<!-- Templates List Modal -->
+<div id="templatesModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 700px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Budget Templates</h5>
+        </div>
+        <div class="md-card-body">
+            <div id="templatesList">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeTemplatesModal()">Close</button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -563,6 +623,258 @@ async function submitTransfer() {
     } catch (error) {
         console.error('Error transferring budget:', error);
         showMaterialSnackbar('An error occurred while transferring budget', 'error');
+    }
+}
+
+// Budget Template Functions
+function openSaveTemplateModal() {
+    document.getElementById('saveTemplateForm').reset();
+    document.getElementById('saveTemplateModal').style.display = 'flex';
+}
+
+function closeSaveTemplateModal() {
+    document.getElementById('saveTemplateModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('saveTemplateModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSaveTemplateModal();
+    }
+});
+
+async function submitSaveTemplate() {
+    const form = document.getElementById('saveTemplateForm');
+
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in the template name', 'error');
+        return;
+    }
+
+    const name = document.getElementById('templateName').value;
+    const description = document.getElementById('templateDescription').value;
+    const isDefault = document.getElementById('setAsDefault').checked;
+
+    const templateData = {
+        name: name,
+        description: description,
+        from_current_budget: true
+    };
+
+    try {
+        const response = await fetch('/api/budget/templates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(templateData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // If set as default, update the template
+            if (isDefault) {
+                await setTemplateAsDefault(data.template.id);
+            }
+
+            showMaterialSnackbar(data.message, 'success');
+            closeSaveTemplateModal();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to save template', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving template:', error);
+        showMaterialSnackbar('An error occurred while saving template', 'error');
+    }
+}
+
+async function setTemplateAsDefault(templateId) {
+    try {
+        await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_default: true })
+        });
+    } catch (error) {
+        console.error('Error setting default template:', error);
+    }
+}
+
+function openTemplatesModal() {
+    document.getElementById('templatesModal').style.display = 'flex';
+    loadTemplates();
+}
+
+function closeTemplatesModal() {
+    document.getElementById('templatesModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('templatesModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTemplatesModal();
+    }
+});
+
+async function loadTemplates() {
+    try {
+        const response = await fetch('/api/budget/templates');
+        const data = await response.json();
+
+        const container = document.getElementById('templatesList');
+
+        if (data.templates.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 48px 24px; color: var(--md-on-surface-variant);">
+                    <i class="fas fa-folder-open" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
+                    <p style="margin: 0;">No templates saved yet</p>
+                    <p style="font-size: 14px; margin-top: 8px;">Create a template by clicking "Save Template" in the budget page</p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = data.templates.map(template => `
+            <div class="md-card" style="margin-bottom: 16px;">
+                <div class="md-card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                ${template.name}
+                                ${template.is_default ? '<span class="md-chip md-chip-primary" style="font-size: 11px; padding: 2px 8px;">Default</span>' : ''}
+                            </h3>
+                            ${template.description ? `<p style="margin: 0 0 12px 0; color: var(--md-on-surface-variant); font-size: 14px;">${template.description}</p>` : ''}
+                            <div style="display: flex; gap: 16px; font-size: 12px; color: var(--md-on-surface-variant);">
+                                <span><i class="fas fa-list"></i> ${template.items_count} categories</span>
+                                <span><i class="fas fa-dollar-sign"></i> $${template.total_allocated.toLocaleString()}</span>
+                                ${template.last_used ? `<span><i class="fas fa-clock"></i> Last used ${new Date(template.last_used).toLocaleDateString()}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="md-btn md-btn-filled" onclick="applyTemplate(${template.id}, '${template.name}')" title="Load this template">
+                                <i class="fas fa-download"></i>
+                                Load
+                            </button>
+                            ${!template.is_default ? `
+                                <button class="md-btn md-btn-icon" onclick="setAsDefault(${template.id})" title="Set as default">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            ` : ''}
+                            <button class="md-btn md-btn-icon" onclick="deleteTemplate(${template.id}, '${template.name}')" title="Delete">
+                                <i class="fas fa-trash" style="color: var(--md-error);"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading templates:', error);
+        showMaterialSnackbar('Failed to load templates', 'error');
+    }
+}
+
+async function applyTemplate(templateId, templateName) {
+    const clearExisting = confirm(
+        `Apply template "${templateName}"?\n\n` +
+        `Choose:\n` +
+        `• OK = Update existing categories and add new ones\n` +
+        `• Cancel = Keep current categories and add from template\n\n` +
+        `Want to replace ALL categories? Click OK then type "REPLACE" in the next prompt.`
+    );
+
+    let shouldClear = false;
+    if (clearExisting) {
+        const clearConfirm = prompt('Type "REPLACE" to delete all existing categories first (or leave blank to merge):');
+        shouldClear = clearConfirm === 'REPLACE';
+    }
+
+    try {
+        showMaterialSnackbar('Applying template...', 'info');
+
+        const response = await fetch(`/api/budget/templates/${templateId}/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                clear_existing: shouldClear
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(
+                `${data.message}\n` +
+                `Created: ${data.stats.categories_created}, ` +
+                `Updated: ${data.stats.categories_updated}` +
+                `${data.stats.categories_deleted > 0 ? `, Deleted: ${data.stats.categories_deleted}` : ''}`,
+                'success'
+            );
+            closeTemplatesModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to apply template', 'error');
+        }
+    } catch (error) {
+        console.error('Error applying template:', error);
+        showMaterialSnackbar('An error occurred while applying template', 'error');
+    }
+}
+
+async function setAsDefault(templateId) {
+    try {
+        const response = await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_default: true })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar('Default template updated', 'success');
+            loadTemplates(); // Reload to show updated default
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to set default template', 'error');
+        }
+    } catch (error) {
+        console.error('Error setting default template:', error);
+        showMaterialSnackbar('An error occurred', 'error');
+    }
+}
+
+async function deleteTemplate(templateId, templateName) {
+    if (!confirm(`Delete template "${templateName}"? This cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            loadTemplates(); // Reload list
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to delete template', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        showMaterialSnackbar('An error occurred while deleting template', 'error');
     }
 }
 </script>
