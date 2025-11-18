@@ -214,3 +214,56 @@ class BudgetTemplateItem(db.Model):
 
     def __repr__(self):
         return f'<BudgetTemplateItem {self.category_name}: {self.allocated_amount}>'
+
+class AccountReconciliation(db.Model):
+    """Account reconciliation for matching transactions with bank statements"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    account = db.Column(db.String(50), nullable=False)  # checking, savings, credit, cash
+    statement_date = db.Column(db.Date, nullable=False)
+    statement_balance = db.Column(db.Numeric(10, 2), nullable=False)
+    book_balance = db.Column(db.Numeric(10, 2))  # Calculated from transactions
+    difference = db.Column(db.Numeric(10, 2))  # statement_balance - book_balance
+    reconciled = db.Column(db.Boolean, default=False)
+    reconciled_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('reconciliations', lazy=True, cascade='all, delete-orphan'))
+    items = db.relationship('ReconciliationItem', backref='reconciliation', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<AccountReconciliation {self.account} - {self.statement_date}>'
+
+    def calculate_balances(self):
+        """Calculate book balance and difference from reconciliation items"""
+        # Calculate book balance from cleared transactions
+        cleared_total = sum(
+            item.transaction.amount if item.transaction.transaction_type == 'income' else -item.transaction.amount
+            for item in self.items if item.cleared
+        )
+
+        self.book_balance = Decimal(str(cleared_total))
+        self.difference = self.statement_balance - self.book_balance
+
+        # Auto-mark as reconciled if difference is zero
+        if self.difference == 0 and not self.reconciled:
+            self.reconciled = True
+            self.reconciled_at = datetime.utcnow()
+
+class ReconciliationItem(db.Model):
+    """Individual transaction items within a reconciliation"""
+    id = db.Column(db.Integer, primary_key=True)
+    reconciliation_id = db.Column(db.Integer, db.ForeignKey('account_reconciliation.id'), nullable=False)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False)
+
+    cleared = db.Column(db.Boolean, default=False)  # Marked as cleared/matched
+    notes = db.Column(db.Text)
+
+    # Relationships
+    transaction = db.relationship('Transaction', backref='reconciliation_items')
+
+    def __repr__(self):
+        return f'<ReconciliationItem Transaction:{self.transaction_id} Cleared:{self.cleared}>'

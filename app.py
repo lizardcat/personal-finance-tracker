@@ -49,13 +49,15 @@ def create_app(config_name=None):
     from api.transactions import transactions_api_bp
     from api.milestones import milestones_api_bp
     from api.reports import reports_api_bp
-    
+    from api.reconciliation import reconciliation_api_bp
+
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(budget_api_bp, url_prefix='/api/budget')
     app.register_blueprint(transactions_api_bp, url_prefix='/api/transactions')
     app.register_blueprint(milestones_api_bp, url_prefix='/api/milestones')
     app.register_blueprint(reports_api_bp, url_prefix='/api/reports')
+    app.register_blueprint(reconciliation_api_bp, url_prefix='/api/reconciliation')
 
     # Store limiter in app for use in blueprints
     app.limiter = limiter
