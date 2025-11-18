@@ -184,11 +184,42 @@
 
 {% block extra_js %}
 <script>
-function updateProfile() {
-    showMaterialSnackbar('Profile update functionality coming soon!', 'info');
+async function updateProfile() {
+    const email = document.getElementById('email').value;
+    const monthlyIncome = document.getElementById('monthly_income').value;
+    const currency = document.getElementById('currency').value;
+
+    try {
+        const response = await fetch('/auth/api/update-profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: email,
+                monthly_income: monthlyIncome,
+                default_currency: currency
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+        } else {
+            if (data.errors) {
+                data.errors.forEach(err => showMaterialSnackbar(err, 'error'));
+            } else {
+                showMaterialSnackbar(data.error || 'Failed to update profile', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to update profile', 'error');
+    }
 }
 
-function changePassword() {
+async function changePassword() {
     const current = document.getElementById('current_password').value;
     const newPass = document.getElementById('new_password').value;
     const confirm = document.getElementById('confirm_password').value;
@@ -203,24 +234,183 @@ function changePassword() {
         return;
     }
 
-    showMaterialSnackbar('Password change functionality coming soon!', 'info');
+    try {
+        const response = await fetch('/auth/api/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                current_password: current,
+                new_password: newPass,
+                confirm_password: confirm
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            // Clear password fields
+            document.getElementById('current_password').value = '';
+            document.getElementById('new_password').value = '';
+            document.getElementById('confirm_password').value = '';
+        } else {
+            if (data.errors) {
+                data.errors.forEach(err => showMaterialSnackbar(err, 'error'));
+            } else {
+                showMaterialSnackbar(data.error || 'Failed to change password', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to change password', 'error');
+    }
 }
 
-function exportData() {
-    showMaterialSnackbar('Data export functionality coming soon!', 'info');
+async function exportData() {
+    try {
+        showMaterialSnackbar('Preparing data export...', 'info');
+
+        const response = await fetch('/auth/api/export-data');
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from response headers or use default
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'export_data.json';
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '');
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            showMaterialSnackbar('Data exported successfully!', 'success');
+        } else {
+            const data = await response.json();
+            showMaterialSnackbar(data.error || 'Failed to export data', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to export data', 'error');
+    }
 }
 
-function backupData() {
-    showMaterialSnackbar('Backup functionality coming soon!', 'info');
+async function backupData() {
+    try {
+        showMaterialSnackbar('Creating backup...', 'info');
+
+        const response = await fetch('/auth/api/backup-data');
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from response headers or use default
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'backup.json';
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '');
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            showMaterialSnackbar('Backup created successfully!', 'success');
+        } else {
+            const data = await response.json();
+            showMaterialSnackbar(data.error || 'Failed to create backup', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to create backup', 'error');
+    }
 }
 
 function importData() {
-    showMaterialSnackbar('Import functionality coming soon!', 'info');
+    // Create file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showMaterialSnackbar('Importing data...', 'info');
+
+            // Note: Import endpoint needs to be implemented on backend
+            showMaterialSnackbar('Import functionality coming soon! Use backup restore for now.', 'warning');
+
+            // TODO: Implement import endpoint
+            // const response = await fetch('/auth/api/import-data', {
+            //     method: 'POST',
+            //     body: formData
+            // });
+        } catch (error) {
+            console.error('Error:', error);
+            showMaterialSnackbar('Failed to import data', 'error');
+        }
+    };
+
+    input.click();
 }
 
-function clearData() {
-    if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
-        showMaterialSnackbar('Clear data functionality coming soon!', 'warning');
+async function clearData() {
+    // Create custom Material Design confirmation dialog
+    const confirmed = confirm('⚠️ WARNING: This will permanently delete ALL your data!\n\nThis includes:\n• All transactions\n• All budget categories\n• All milestones\n\nThis action CANNOT be undone!\n\nType "DELETE ALL DATA" in the next prompt to confirm.');
+
+    if (!confirmed) return;
+
+    const confirmation = prompt('Type "DELETE ALL DATA" to confirm (case sensitive):');
+
+    if (confirmation !== 'DELETE ALL DATA') {
+        showMaterialSnackbar('Data clear cancelled - confirmation text did not match', 'info');
+        return;
+    }
+
+    try {
+        const response = await fetch('/auth/api/clear-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                confirmation: confirmation
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            // Reload page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to clear data', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to clear data', 'error');
     }
 }
 

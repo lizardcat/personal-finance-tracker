@@ -373,3 +373,246 @@ def check_email():
         'available': not exists,
         'message': 'Email already exists' if exists else 'Email available'
     })
+
+@auth_bp.route('/api/export-data')
+@login_required
+def export_user_data():
+    """Export all user data as JSON backup"""
+    try:
+        from services.export_service import export_service
+        from flask import send_file
+
+        # Export full backup
+        result = export_service.export_full_backup(current_user.id)
+
+        # Log export event
+        log_security_event(
+            'data_exported',
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=request.remote_addr,
+            details=f'Exported {result["items_count"]["transactions"]} transactions, {result["items_count"]["categories"]} categories'
+        )
+        current_app.logger.info(f'User {current_user.username} exported data from IP {request.remote_addr}')
+
+        # Send file as download
+        return send_file(
+            result['filepath'],
+            as_attachment=True,
+            download_name=result['filename'],
+            mimetype='application/json'
+        )
+
+    except Exception as e:
+        current_app.logger.error(f'Data export error for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to export data'}), 500
+
+@auth_bp.route('/api/backup-data')
+@login_required
+def backup_user_data():
+    """Create a database backup"""
+    try:
+        from database.backup_restore import backup_database
+        from flask import send_file
+        import os
+
+        # Create backup directory
+        backup_dir = 'backups'
+        os.makedirs(backup_dir, exist_ok=True)
+
+        # Generate backup filename
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"backup_{current_user.username}_{timestamp}.json"
+        backup_path = os.path.join(backup_dir, backup_filename)
+
+        # Create backup
+        with current_app.app_context():
+            result = backup_database(backup_path)
+
+        if result:
+            # Log backup event
+            log_security_event(
+                'database_backup_created',
+                user_id=current_user.id,
+                username=current_user.username,
+                ip_address=request.remote_addr,
+                details=f'Backup file: {backup_filename}'
+            )
+            current_app.logger.info(f'User {current_user.username} created backup from IP {request.remote_addr}')
+
+            # Send file as download
+            return send_file(
+                result,
+                as_attachment=True,
+                download_name=backup_filename,
+                mimetype='application/json'
+            )
+        else:
+            return jsonify({'error': 'Failed to create backup'}), 500
+
+    except Exception as e:
+        current_app.logger.error(f'Backup error for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to create backup'}), 500
+
+@auth_bp.route('/api/clear-data', methods=['POST'])
+@login_required
+@get_limiter().limit("3 per hour")
+def clear_user_data():
+    """Clear all user data (transactions, categories, milestones)"""
+    try:
+        from models import Transaction, BudgetCategory, Milestone
+
+        # Verify confirmation
+        data = request.get_json()
+        confirmation = data.get('confirmation', '')
+
+        if confirmation != 'DELETE ALL DATA':
+            return jsonify({'error': 'Invalid confirmation text'}), 400
+
+        # Delete user data
+        Transaction.query.filter_by(user_id=current_user.id).delete()
+        Milestone.query.filter_by(user_id=current_user.id).delete()
+        BudgetCategory.query.filter_by(user_id=current_user.id).delete()
+
+        db.session.commit()
+
+        # Log data clear event
+        log_security_event(
+            'user_data_cleared',
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=request.remote_addr,
+            details='All user data cleared'
+        )
+        current_app.logger.warning(f'User {current_user.username} cleared all data from IP {request.remote_addr}')
+
+        return jsonify({
+            'success': True,
+            'message': 'All data cleared successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Clear data error for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to clear data'}), 500
+
+@auth_bp.route('/api/change-password', methods=['POST'])
+@login_required
+@get_limiter().limit("5 per hour")
+def change_password():
+    """Change user password"""
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
+
+        errors = []
+
+        # Validate current password
+        if not current_password:
+            errors.append('Current password is required')
+        elif not current_user.check_password(current_password):
+            errors.append('Current password is incorrect')
+
+        # Validate new password
+        if not new_password:
+            errors.append('New password is required')
+        elif new_password != confirm_password:
+            errors.append('New passwords do not match')
+        else:
+            # Validate password strength
+            is_valid, password_error = validate_password_strength(new_password)
+            if not is_valid:
+                errors.append(password_error)
+
+        if errors:
+            return jsonify({'errors': errors}), 400
+
+        # Update password
+        current_user.set_password(new_password)
+        db.session.commit()
+
+        # Log password change
+        log_security_event(
+            'password_changed',
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=request.remote_addr,
+            details='Password changed successfully'
+        )
+        current_app.logger.info(f'User {current_user.username} changed password from IP {request.remote_addr}')
+
+        return jsonify({
+            'success': True,
+            'message': 'Password changed successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Password change error for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to change password'}), 500
+
+@auth_bp.route('/api/update-profile', methods=['POST'])
+@login_required
+def update_profile():
+    """Update user profile"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        monthly_income = data.get('monthly_income', 0)
+        default_currency = data.get('default_currency', 'USD')
+
+        errors = []
+
+        # Validate email
+        if email and email != current_user.email:
+            if not validate_email(email):
+                errors.append('Please enter a valid email address')
+            elif User.query.filter_by(email=email).first():
+                errors.append('Email already exists')
+
+        # Validate monthly income
+        try:
+            monthly_income = float(monthly_income) if monthly_income else 0
+            if monthly_income < 0:
+                errors.append('Monthly income cannot be negative')
+        except ValueError:
+            errors.append('Invalid monthly income amount')
+
+        # Validate currency
+        if default_currency not in ['USD', 'KES']:
+            errors.append('Invalid currency')
+
+        if errors:
+            return jsonify({'errors': errors}), 400
+
+        # Update profile
+        if email and email != current_user.email:
+            current_user.email = email
+
+        current_user.monthly_income = monthly_income
+        current_user.default_currency = default_currency
+
+        db.session.commit()
+
+        # Log profile update
+        log_security_event(
+            'profile_updated',
+            user_id=current_user.id,
+            username=current_user.username,
+            ip_address=request.remote_addr,
+            details=f'Email: {email}, Currency: {default_currency}, Monthly Income: {monthly_income}'
+        )
+        current_app.logger.info(f'User {current_user.username} updated profile from IP {request.remote_addr}')
+
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Profile update error for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to update profile'}), 500
