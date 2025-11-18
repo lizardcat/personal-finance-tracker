@@ -1,0 +1,37 @@
+[run]
+source = .
+omit =
+    */tests/*
+    */venv/*
+    */.venv/*
+    */env/*
+    */__pycache__/*
+    */site-packages/*
+    */dist-packages/*
+    */migrations/*
+    */database/seed_data.py
+    */database/enhanced_init_db.py
+    setup.py
+    conftest.py
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

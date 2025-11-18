@@ -1,0 +1,40 @@
+[flake8]
+# Flake8 configuration for code quality
+
+max-line-length = 127
+max-complexity = 10
+
+# Exclude patterns
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .tox,
+    build,
+    dist,
+    *.egg-info,
+    .eggs,
+    migrations,
+    htmlcov,
+    .pytest_cache
+
+# Error codes to ignore
+ignore =
+    E203,  # Whitespace before ':'
+    E266,  # Too many leading '#' for block comment
+    E501,  # Line too long (handled by black)
+    W503,  # Line break before binary operator
+    W504,  # Line break after binary operator
+
+# Error codes to always report
+select =
+    E,     # pycodestyle errors
+    F,     # pyflakes
+    W,     # pycodestyle warnings
+    C90,   # mccabe complexity
+
+per-file-ignores =
+    __init__.py:F401,F403
+    tests/*:F401,F811
