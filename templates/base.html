@@ -51,6 +51,10 @@
                 <i class="fas fa-chart-line md-nav-icon"></i>
                 <span>Reports</span>
             </a>
+            <a href="{{ url_for('main.milestones') }}" class="md-nav-item {% if request.endpoint == 'main.milestones' %}active{% endif %}">
+                <i class="fas fa-flag-checkered md-nav-icon"></i>
+                <span>Milestones</span>
+            </a>
             <a href="{{ url_for('main.settings') }}" class="md-nav-item {% if request.endpoint == 'main.settings' %}active{% endif %}">
                 <i class="fas fa-cog md-nav-icon"></i>
                 <span>Settings</span>

@@ -231,6 +231,16 @@ def settings():
     """User settings and preferences"""
     return render_template('settings.html', user=current_user)
 
+@main_bp.route('/milestones')
+@login_required
+def milestones():
+    """Milestones management page"""
+    # Get milestones for initial render (actual data loaded via API)
+    milestones = Milestone.query.filter_by(user_id=current_user.id)\
+        .order_by(Milestone.target_date.asc().nullslast(), Milestone.created_at.desc()).all()
+
+    return render_template('milestones.html', milestones=milestones)
+
 @main_bp.route('/api/dashboard-data')
 @login_required
 def dashboard_data():
