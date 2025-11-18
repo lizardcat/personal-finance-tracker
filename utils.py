@@ -83,6 +83,38 @@ def validate_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
+def validate_password_strength(password):
+    """
+    Validate password strength for financial application.
+    Returns (is_valid, error_message)
+
+    Requirements:
+    - At least 12 characters
+    - Contains uppercase letter
+    - Contains lowercase letter
+    - Contains digit
+    - Contains special character
+    """
+    if not password:
+        return False, "Password is required"
+
+    if len(password) < 12:
+        return False, "Password must be at least 12 characters long"
+
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one number"
+
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;\'`~]', password):
+        return False, "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>_-+=[]\\\/;'`~)"
+
+    return True, ""
+
 def sanitize_filename(filename):
     """Sanitize filename for safe file operations"""
     # Remove or replace unsafe characters

@@ -1,5 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_required, current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
 from models import db, User
 from config import config
 import os
@@ -14,7 +17,16 @@ def create_app(config_name=None):
     
     # Initialize extensions
     db.init_app(app)
-    
+
+    # Setup rate limiting
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://",
+        strategy="fixed-window"
+    )
+
     # Setup Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
@@ -40,6 +52,23 @@ def create_app(config_name=None):
     app.register_blueprint(transactions_api_bp, url_prefix='/api/transactions')
     app.register_blueprint(milestones_api_bp, url_prefix='/api/milestones')
     app.register_blueprint(reports_api_bp, url_prefix='/api/reports')
+
+    # Store limiter in app for use in blueprints
+    app.limiter = limiter
+
+    # Enable HTTPS enforcement in production
+    if config_name == 'production':
+        Talisman(app,
+                force_https=True,
+                strict_transport_security=True,
+                strict_transport_security_max_age=31536000,
+                content_security_policy={
+                    'default-src': "'self'",
+                    'script-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'],
+                    'style-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'],
+                    'img-src': ["'self'", 'data:', 'https:'],
+                    'font-src': ["'self'", 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com']
+                })
     
     # Error handlers
     @app.errorhandler(404)
@@ -54,6 +83,16 @@ def create_app(config_name=None):
     @app.errorhandler(403)
     def forbidden_error(error):
         return render_template('403.html'), 403
+
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        """Handle rate limit exceeded errors"""
+        if request.is_json:
+            return jsonify({
+                'error': 'Rate limit exceeded',
+                'message': 'Too many requests. Please try again later.'
+            }), 429
+        return render_template('429.html'), 429
     
     # Template context processors
     @app.context_processor
@@ -64,6 +103,18 @@ def create_app(config_name=None):
     def utility_processor():
         from utils import format_currency, calculate_percentage
         return dict(format_currency=format_currency, calculate_percentage=calculate_percentage)
+
+    # Add security headers
+    @app.after_request
+    def set_security_headers(response):
+        """Add security headers to all responses"""
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        # Only set HSTS if in production (with HTTPS)
+        if config_name == 'production':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        return response
     
     # Create tables on first run
     with app.app_context():

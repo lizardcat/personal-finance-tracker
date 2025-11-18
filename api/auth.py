@@ -1,12 +1,18 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
-from utils import validate_email
+from utils import validate_email, validate_password_strength
 import re
+from urllib.parse import urlparse, urljoin
 
 auth_bp = Blueprint('auth', __name__)
 
+def get_limiter():
+    """Helper to get limiter from current app"""
+    return current_app.limiter
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@get_limiter().limit("5 per 15 minutes", methods=['POST'])
 def login():
     """User login"""
     if current_user.is_authenticated:
@@ -42,17 +48,25 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=remember_me)
             next_page = request.args.get('next')
-            
+
+            # Validate next_page to prevent open redirect vulnerability
+            if next_page:
+                # Parse the URL to check if it's a relative URL (same host)
+                parsed_url = urlparse(next_page)
+                # Only allow relative URLs (no scheme, no netloc)
+                if parsed_url.netloc or parsed_url.scheme:
+                    next_page = None
+
+            redirect_url = next_page if next_page else url_for('main.dashboard')
+
             if request.is_json:
                 return jsonify({
                     'success': True,
                     'message': 'Login successful',
-                    'redirect': next_page or url_for('main.dashboard')
+                    'redirect': redirect_url
                 })
-            
-            if next_page and next_page.startswith('/'):
-                return redirect(next_page)
-            return redirect(url_for('main.dashboard'))
+
+            return redirect(redirect_url)
         else:
             error_msg = 'Invalid username/email or password'
             if request.is_json:
@@ -62,6 +76,7 @@ def login():
     return render_template('auth.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@get_limiter().limit("3 per hour", methods=['POST'])
 def register():
     """User registration"""
     if current_user.is_authenticated:
@@ -92,10 +107,12 @@ def register():
         
         if not email or not validate_email(email):
             errors.append('Please enter a valid email address')
-        
-        if not password or len(password) < 6:
-            errors.append('Password must be at least 6 characters long')
-        
+
+        # Validate password strength
+        is_valid, password_error = validate_password_strength(password)
+        if not is_valid:
+            errors.append(password_error)
+
         if password != confirm_password:
             errors.append('Passwords do not match')
         
@@ -200,8 +217,11 @@ def profile():
                 errors.append('Current password is required to change password')
             elif not current_user.check_password(current_password):
                 errors.append('Current password is incorrect')
-            elif len(new_password) < 6:
-                errors.append('New password must be at least 6 characters long')
+            else:
+                # Validate new password strength
+                is_valid, password_error = validate_password_strength(new_password)
+                if not is_valid:
+                    errors.append(password_error)
         
         # Validate monthly income
         try:
@@ -264,6 +284,7 @@ def user_info():
     })
 
 @auth_bp.route('/api/check-username')
+@get_limiter().limit("10 per minute")
 def check_username():
     """Check if username is available"""
     username = request.args.get('username', '').strip()
@@ -282,6 +303,7 @@ def check_username():
     })
 
 @auth_bp.route('/api/check-email')
+@get_limiter().limit("10 per minute")
 def check_email():
     """Check if email is available"""
     email = request.args.get('email', '').strip()

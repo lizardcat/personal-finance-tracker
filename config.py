@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("SECRET_KEY environment variable must be set")
+
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///finance_tracker.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -34,6 +37,9 @@ class Config:
     REPORTS_PER_PAGE = 10
 
 class DevelopmentConfig(Config):
+    # Allow fallback SECRET_KEY for development only
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-only-for-development-do-not-use-in-production'
+
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or 'sqlite:///finance_tracker_dev.db'
     REMEMBER_COOKIE_SECURE = False
@@ -41,14 +47,32 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
+
+    # Validate required environment variables for production
+    if not os.environ.get('SECRET_KEY'):
+        raise ValueError("SECRET_KEY environment variable is required in production")
+    if not os.environ.get('DATABASE_URL'):
+        raise ValueError("DATABASE_URL environment variable is required in production")
+
     # Use PostgreSQL in production
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'postgresql://user:password@localhost/finance_tracker'
-    
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+
     # Security settings for production
     REMEMBER_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
 
+    # Database pool configuration for production
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+        'max_overflow': 20
+    }
+
 class TestingConfig(Config):
+    # Allow fallback SECRET_KEY for testing only
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'test-secret-key-only-for-testing'
+
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
