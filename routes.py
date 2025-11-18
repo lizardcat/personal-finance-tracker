@@ -241,6 +241,18 @@ def milestones():
 
     return render_template('milestones.html', milestones=milestones)
 
+@main_bp.route('/reconciliation')
+@login_required
+def reconciliation():
+    """Account reconciliation page"""
+    from models import AccountReconciliation
+
+    # Get recent reconciliations for display
+    reconciliations = AccountReconciliation.query.filter_by(user_id=current_user.id)\
+        .order_by(AccountReconciliation.statement_date.desc()).limit(10).all()
+
+    return render_template('reconciliation.html', reconciliations=reconciliations)
+
 @main_bp.route('/api/dashboard-data')
 @login_required
 def dashboard_data():
