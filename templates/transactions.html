@@ -3,20 +3,25 @@
 {% block title %}Transactions - Personal Finance Tracker{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-list me-2"></i>Transactions</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
-        <i class="fas fa-plus me-2"></i>Add Transaction
+
+<!-- Page Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 32px 0 24px 0;">
+    <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-list"></i>
+        Transactions
+    </h1>
+    <button class="md-btn md-btn-filled" onclick="openTransactionModal()">
+        <i class="fas fa-plus"></i>
+        Add Transaction
     </button>
 </div>
 
 <!-- Filters -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Category</label>
-                <select class="form-select" name="category">
+<div class="md-card" style="margin-bottom: 24px;">
+    <div class="md-card-body">
+        <form method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+            <div class="md-text-field">
+                <select name="category" id="filterCategory">
                     <option value="">All Categories</option>
                     {% for category in categories %}
                     <option value="{{ category.id }}" {% if filters.category == category.id|string %}selected{% endif %}>
@@ -24,224 +29,234 @@
                     </option>
                     {% endfor %}
                 </select>
+                <label for="filterCategory">Category</label>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Type</label>
-                <select class="form-select" name="type">
+
+            <div class="md-text-field">
+                <select name="type" id="filterType">
                     <option value="">All Types</option>
                     <option value="income" {% if filters.type == 'income' %}selected{% endif %}>Income</option>
                     <option value="expense" {% if filters.type == 'expense' %}selected{% endif %}>Expense</option>
                 </select>
+                <label for="filterType">Type</label>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Search</label>
-                <input type="text" class="form-control" name="search" value="{{ filters.search or '' }}" placeholder="Search description or payee">
+
+            <div class="md-text-field">
+                <input type="text" name="search" id="filterSearch" value="{{ filters.search or '' }}" placeholder=" ">
+                <label for="filterSearch">Search</label>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn-outline-primary d-block w-100">Filter</button>
-            </div>
+
+            <button type="submit" class="md-btn md-btn-outlined" style="height: 48px;">
+                <i class="fas fa-filter"></i>
+                Filter
+            </button>
         </form>
     </div>
 </div>
 
 <!-- Summary -->
 {% if page_summary %}
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <h6>Total Income</h6>
-                <h4>{{ format_currency(page_summary.total_income) }}</h4>
-            </div>
+<div class="md-grid md-grid-cols-3" style="margin-bottom: 24px;">
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-success) 0%, #2E7D32 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Income</h6>
+            <div style="font-size: 32px; font-weight: 400;">{{ format_currency(page_summary.total_income) }}</div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <h6>Total Expenses</h6>
-                <h4>{{ format_currency(page_summary.total_expenses) }}</h4>
-            </div>
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-error) 0%, #C62828 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Expenses</h6>
+            <div style="font-size: 32px; font-weight: 400;">{{ format_currency(page_summary.total_expenses) }}</div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card bg-info text-white">
-            <div class="card-body text-center">
-                <h6>Net Amount</h6>
-                <h4>{{ format_currency(page_summary.net_amount) }}</h4>
-            </div>
+    <div class="md-card md-card-elevated">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; color: var(--md-on-surface-variant); font-weight: 400;">Net Amount</h6>
+            <div style="font-size: 32px; font-weight: 500; color: {% if page_summary.net_amount >= 0 %}var(--md-success){% else %}var(--md-error){% endif %};">{{ format_currency(page_summary.net_amount) }}</div>
         </div>
     </div>
 </div>
 {% endif %}
 
-<!-- Transactions Table -->
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Description</th>
-                        <th>Category</th>
-                        <th>Amount</th>
-                        <th>Type</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if transactions.items %}
-                        {% for transaction in transactions.items %}
-                        <tr>
-                            <td>{{ transaction.transaction_date.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ transaction.description }}</td>
-                            <td>
-                                {% if transaction.budget_category %}
-                                    <span class="badge bg-secondary">{{ transaction.budget_category.name }}</span>
-                                {% else %}
-                                    <span class="text-muted">Uncategorized</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
-                                    {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}{{ format_currency(transaction.amount) }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
-                                    {{ transaction.transaction_type.title() }}
-                                </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editTransaction({{ transaction.id }})">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTransaction({{ transaction.id }})">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-5">
-                                No transactions found.
-                                <br>
-                                <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
-                                    Add your first transaction
-                                </button>
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+<!-- Transactions List -->
+<div class="md-card">
+    <div class="md-card-header">
+        <h5 class="md-card-title">All Transactions</h5>
+    </div>
+    <div class="md-card-body" style="padding: 0;">
+        {% if transactions.items %}
+            <ul class="md-list">
+                {% for transaction in transactions.items %}
+                <li class="md-list-item" data-transaction-id="{{ transaction.id }}">
+                    <!-- Icon -->
+                    <div class="md-list-item-icon" style="width: 48px; height: 48px; border-radius: 50%; background-color: {% if transaction.transaction_type == 'income' %}rgba(67, 160, 71, 0.12){% else %}rgba(229, 57, 53, 0.12){% endif %}; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas {% if transaction.transaction_type == 'income' %}fa-arrow-up{% else %}fa-arrow-down{% endif %}" style="color: {% if transaction.transaction_type == 'income' %}var(--md-success){% else %}var(--md-error){% endif %}; font-size: 20px;"></i>
+                    </div>
+
+                    <!-- Transaction Details -->
+                    <div class="md-list-item-text" style="flex: 1;">
+                        <div class="md-list-item-primary" style="font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                            {{ transaction.description }}
+                            {% if transaction.budget_category %}
+                                <span class="md-chip md-chip-primary" style="padding: 2px 8px; font-size: 11px;">{{ transaction.budget_category.name }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="md-list-item-secondary" style="display: flex; align-items: center; gap: 12px;">
+                            <span><i class="fas fa-calendar" style="margin-right: 4px;"></i>{{ transaction.transaction_date.strftime('%b %d, %Y') }}</span>
+                            {% if transaction.payee %}
+                                <span><i class="fas fa-user" style="margin-right: 4px;"></i>{{ transaction.payee }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Amount -->
+                    <div style="text-align: right; margin-right: 16px;">
+                        <div style="font-size: 18px; font-weight: 500; color: {% if transaction.transaction_type == 'income' %}var(--md-success){% else %}var(--md-error){% endif %};">
+                            {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}{{ format_currency(transaction.amount) }}
+                        </div>
+                        <div style="font-size: 12px; color: var(--md-on-surface-variant);">
+                            {{ transaction.account|default('checking')|title }}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display: flex; gap: 4px;">
+                        <button class="md-btn-icon" onclick="editTransaction({{ transaction.id }})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="md-btn-icon" onclick="deleteTransaction({{ transaction.id }})" title="Delete" style="color: var(--md-error);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </li>
+                <div class="md-divider" style="margin: 0;"></div>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div style="padding: 64px 24px; text-align: center;">
+                <i class="fas fa-receipt" style="font-size: 64px; color: var(--md-on-surface-variant); opacity: 0.3; margin-bottom: 24px;"></i>
+                <p style="color: var(--md-on-surface-variant); margin: 0 0 24px 0; font-size: 18px;">No transactions found</p>
+                <button class="md-btn md-btn-filled" onclick="openTransactionModal()">
+                    <i class="fas fa-plus"></i>
+                    Add Your First Transaction
+                </button>
+            </div>
+        {% endif %}
     </div>
 </div>
 
 <!-- Pagination -->
 {% if transactions.pages > 1 %}
-<nav class="mt-4">
-    <ul class="pagination justify-content-center">
-        {% if transactions.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('main.transactions', page=transactions.prev_num, **filters) }}">Previous</a>
-            </li>
-        {% endif %}
+<div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px;">
+    {% if transactions.has_prev %}
+        <a href="{{ url_for('main.transactions', page=transactions.prev_num, **filters) }}" class="md-btn md-btn-outlined">
+            <i class="fas fa-chevron-left"></i>
+            Previous
+        </a>
+    {% endif %}
 
+    <div style="display: flex; gap: 4px;">
         {% for page_num in transactions.iter_pages() %}
             {% if page_num %}
                 {% if page_num != transactions.page %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('main.transactions', page=page_num, **filters) }}">{{ page_num }}</a>
-                    </li>
+                    <a href="{{ url_for('main.transactions', page=page_num, **filters) }}" class="md-btn-icon" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        {{ page_num }}
+                    </a>
                 {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
+                    <button class="md-btn-icon" style="width: 40px; height: 40px; background-color: var(--md-primary); color: white; display: flex; align-items: center; justify-content: center;">
+                        {{ page_num }}
+                    </button>
                 {% endif %}
             {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">&</span>
-                </li>
+                <span style="padding: 0 8px; color: var(--md-on-surface-variant);">…</span>
             {% endif %}
         {% endfor %}
+    </div>
 
-        {% if transactions.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('main.transactions', page=transactions.next_num, **filters) }}">Next</a>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
+    {% if transactions.has_next %}
+        <a href="{{ url_for('main.transactions', page=transactions.next_num, **filters) }}" class="md-btn md-btn-outlined">
+            Next
+            <i class="fas fa-chevron-right"></i>
+        </a>
+    {% endif %}
+</div>
 {% endif %}
 
-<!-- Add Transaction Modal -->
-<div class="modal fade" id="addTransactionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Transaction</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="transactionForm">
-                    <div class="mb-3">
-                        <label class="form-label">Type</label>
-                        <select class="form-select" name="transaction_type" required>
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Date</label>
-                        <input type="date" class="form-control" name="transaction_date" value="{{ today }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <input type="text" class="form-control" name="description" placeholder="What was this transaction for?" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Amount</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" name="amount" step="0.01" min="0" placeholder="0.00" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" name="category_id">
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}">{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payee (Optional)</label>
-                        <input type="text" class="form-control" name="payee" placeholder="Who was paid or paid you?">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Account</label>
-                        <select class="form-select" name="account">
-                            <option value="checking">Checking</option>
-                            <option value="savings">Savings</option>
-                            <option value="credit">Credit Card</option>
-                            <option value="cash">Cash</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tags (Optional)</label>
-                        <input type="text" class="form-control" name="tags" placeholder="Comma-separated tags">
-                        <div class="form-text">e.g., work, travel, grocery</div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitTransaction()">Add Transaction</button>
-            </div>
+<!-- Material Design Modal -->
+<div id="addTransactionModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="md-card" style="width: 600px; max-width: 90%; margin: 24px auto;">
+        <div class="md-card-header">
+            <h5 class="md-card-title" id="modalTitle">Add Transaction</h5>
+        </div>
+        <div class="md-card-body">
+            <form id="transactionForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px;">
+                <!-- Transaction Type -->
+                <div class="md-text-field" style="grid-column: 1 / -1;">
+                    <select name="transaction_type" id="transactionType" required>
+                        <option value="">Select type...</option>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                    <label for="transactionType">Transaction Type</label>
+                </div>
+
+                <!-- Date -->
+                <div class="md-text-field">
+                    <input type="date" name="transaction_date" id="transactionDate" required>
+                    <label for="transactionDate">Date</label>
+                </div>
+
+                <!-- Amount -->
+                <div class="md-text-field">
+                    <input type="number" name="amount" id="transactionAmount" step="0.01" min="0" placeholder=" " required>
+                    <label for="transactionAmount">Amount ($)</label>
+                </div>
+
+                <!-- Description -->
+                <div class="md-text-field" style="grid-column: 1 / -1;">
+                    <input type="text" name="description" id="transactionDescription" placeholder=" " required>
+                    <label for="transactionDescription">Description</label>
+                </div>
+
+                <!-- Category -->
+                <div class="md-text-field">
+                    <select name="category_id" id="transactionCategory">
+                        <option value="">None</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="transactionCategory">Category</label>
+                </div>
+
+                <!-- Account -->
+                <div class="md-text-field">
+                    <select name="account" id="transactionAccount">
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                        <option value="credit">Credit Card</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                    <label for="transactionAccount">Account</label>
+                </div>
+
+                <!-- Payee -->
+                <div class="md-text-field" style="grid-column: 1 / -1;">
+                    <input type="text" name="payee" id="transactionPayee" placeholder=" ">
+                    <label for="transactionPayee">Payee (Optional)</label>
+                </div>
+
+                <!-- Tags -->
+                <div class="md-text-field" style="grid-column: 1 / -1;">
+                    <input type="text" name="tags" id="transactionTags" placeholder=" ">
+                    <label for="transactionTags">Tags (Optional)</label>
+                    <small style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: 4px;">e.g., work, travel, grocery</small>
+                </div>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeTransactionModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitTransaction()">Save Transaction</button>
         </div>
     </div>
 </div>
@@ -252,23 +267,45 @@
 <script>
 let editingTransactionId = null;
 
-// Set today's date as default when modal opens
-document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.querySelector('input[name="transaction_date"]').value = today;
-});
-
-// Reset modal when shown
-document.getElementById('addTransactionModal').addEventListener('show.bs.modal', function() {
+// Open modal
+function openTransactionModal() {
     editingTransactionId = null;
-    document.querySelector('.modal-title').textContent = 'Add Transaction';
+    document.getElementById('modalTitle').textContent = 'Add Transaction';
     document.getElementById('transactionForm').reset();
     const today = new Date().toISOString().split('T')[0];
-    document.querySelector('input[name="transaction_date"]').value = today;
+    document.getElementById('transactionDate').value = today;
+    document.getElementById('addTransactionModal').style.display = 'flex';
+}
+
+// Close modal
+function closeTransactionModal() {
+    document.getElementById('addTransactionModal').style.display = 'none';
+    document.getElementById('transactionForm').reset();
+    editingTransactionId = null;
+}
+
+// Close modal when clicking outside
+document.getElementById('addTransactionModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTransactionModal();
+    }
+});
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('transactionDate').value = today;
 });
 
 async function submitTransaction() {
     const form = document.getElementById('transactionForm');
+
+    // Validate form
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in all required fields', 'error');
+        return;
+    }
+
     const formData = new FormData(form);
 
     const transactionData = {
@@ -299,22 +336,15 @@ async function submitTransaction() {
         const result = await response.json();
 
         if (response.ok) {
-            // Close modal
-            document.querySelector('#addTransactionModal .btn-close').click();
-
-            // Show success message
-            showNotification(result.message || 'Transaction saved successfully!', 'success');
-
-            // Reload page to show updated data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            closeTransactionModal();
+            showMaterialSnackbar(result.message || 'Transaction saved successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification(result.error || 'Failed to save transaction', 'danger');
+            showMaterialSnackbar(result.error || 'Failed to save transaction', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
@@ -327,26 +357,26 @@ async function editTransaction(id) {
             editingTransactionId = id;
 
             // Populate form
-            document.querySelector('[name="transaction_type"]').value = transaction.transaction_type;
-            document.querySelector('[name="transaction_date"]').value = transaction.transaction_date;
-            document.querySelector('[name="description"]').value = transaction.description;
-            document.querySelector('[name="amount"]').value = transaction.amount;
-            document.querySelector('[name="category_id"]').value = transaction.category ? transaction.category.id : '';
-            document.querySelector('[name="payee"]').value = transaction.payee || '';
-            document.querySelector('[name="account"]').value = transaction.account || 'checking';
-            document.querySelector('[name="tags"]').value = transaction.tags || '';
+            document.getElementById('transactionType').value = transaction.transaction_type;
+            document.getElementById('transactionDate').value = transaction.transaction_date;
+            document.getElementById('transactionDescription').value = transaction.description;
+            document.getElementById('transactionAmount').value = transaction.amount;
+            document.getElementById('transactionCategory').value = transaction.category ? transaction.category.id : '';
+            document.getElementById('transactionPayee').value = transaction.payee || '';
+            document.getElementById('transactionAccount').value = transaction.account || 'checking';
+            document.getElementById('transactionTags').value = transaction.tags || '';
 
             // Update modal title
-            document.querySelector('.modal-title').textContent = 'Edit Transaction';
+            document.getElementById('modalTitle').textContent = 'Edit Transaction';
 
             // Show modal
-            new bootstrap.Modal(document.getElementById('addTransactionModal')).show();
+            document.getElementById('addTransactionModal').style.display = 'flex';
         } else {
-            showNotification('Failed to load transaction details', 'danger');
+            showMaterialSnackbar('Failed to load transaction details', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
@@ -363,56 +393,50 @@ async function deleteTransaction(id) {
         const result = await response.json();
 
         if (response.ok) {
-            showNotification(result.message || 'Transaction deleted successfully!', 'success');
+            showMaterialSnackbar(result.message || 'Transaction deleted successfully!', 'success');
 
-            // Remove the row from the table
-            const row = document.querySelector(`tr[data-transaction-id="${id}"]`);
-            if (row) {
-                row.remove();
+            // Remove the item from the list
+            const item = document.querySelector(`li[data-transaction-id="${id}"]`);
+            if (item) {
+                item.nextElementSibling?.remove(); // Remove divider
+                item.remove();
             }
 
-            // Reload page to update summary
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            showNotification(result.error || 'Failed to delete transaction', 'danger');
+            showMaterialSnackbar(result.error || 'Failed to delete transaction', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+function showMaterialSnackbar(message, type = 'info') {
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+
+    const colors = {
+        'success': 'var(--md-success)',
+        'error': 'var(--md-error)',
+        'warning': 'var(--md-warning)',
+        'info': 'var(--md-info)'
+    };
+    snackbar.style.backgroundColor = colors[type] || colors.info;
+
+    snackbar.innerHTML = `
+        <span>${message}</span>
+        <button class="md-btn md-btn-text" style="color: white; padding: 8px 16px;" onclick="this.parentElement.remove()">
+            Dismiss
+        </button>
     `;
 
-    // Add to page
-    document.body.appendChild(notification);
+    document.body.appendChild(snackbar);
 
-    // Auto-remove after 5 seconds
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
+        snackbar.style.opacity = '0';
+        setTimeout(() => snackbar.parentNode && snackbar.remove(), 300);
     }, 5000);
 }
-
-// Add transaction IDs to table rows for easier deletion
-document.querySelectorAll('tbody tr').forEach((row, index) => {
-    const deleteBtn = row.querySelector('button[onclick*="deleteTransaction"]');
-    if (deleteBtn) {
-        const onclickValue = deleteBtn.getAttribute('onclick');
-        const id = onclickValue.match(/\d+/)[0];
-        row.setAttribute('data-transaction-id', id);
-    }
-});
 </script>
 {% endblock %}
