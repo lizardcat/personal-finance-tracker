@@ -5,6 +5,7 @@ from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from models import db, User
 from config import config
+from logging_config import setup_logging
 import os
 
 def create_app(config_name=None):
@@ -17,6 +18,9 @@ def create_app(config_name=None):
     
     # Initialize extensions
     db.init_app(app)
+
+    # Setup logging
+    setup_logging(app)
 
     # Setup rate limiting
     limiter = Limiter(
@@ -73,20 +77,24 @@ def create_app(config_name=None):
     # Error handlers
     @app.errorhandler(404)
     def not_found_error(error):
+        app.logger.warning(f'404 error: {request.url} from IP {request.remote_addr}')
         return render_template('404.html'), 404
-    
+
     @app.errorhandler(500)
     def internal_error(error):
+        app.logger.error(f'500 error: {str(error)}', exc_info=True)
         db.session.rollback()
         return render_template('500.html'), 500
-    
+
     @app.errorhandler(403)
     def forbidden_error(error):
+        app.logger.warning(f'403 error: User {current_user.username if current_user.is_authenticated else "Anonymous"} attempted to access {request.url} from IP {request.remote_addr}')
         return render_template('403.html'), 403
 
     @app.errorhandler(429)
     def ratelimit_handler(error):
         """Handle rate limit exceeded errors"""
+        app.logger.warning(f'Rate limit exceeded: {request.url} from IP {request.remote_addr}')
         if request.is_json:
             return jsonify({
                 'error': 'Rate limit exceeded',
@@ -131,6 +139,7 @@ def init_db():
     """Initialize the database."""
     from database.init_db import init_db
     init_db(app)
+    app.logger.info('Database initialized via CLI command')
     print('Database initialized.')
 
 @app.cli.command()
@@ -138,6 +147,7 @@ def init_enhanced():
     """Initialize database with sample data."""
     from database.enhanced_init_db import enhanced_init_db
     enhanced_init_db(app)
+    app.logger.info('Database initialized with sample data via CLI command')
     print('Database initialized with sample data.')
 
 @app.cli.command()
@@ -146,6 +156,7 @@ def seed():
     from database.seed_data import seed_data
     with app.app_context():
         seed_data()
+    app.logger.info('Database seeded via CLI command')
     print('Database seeded.')
 
 @app.cli.command()
@@ -154,16 +165,18 @@ def create_admin():
     username = input('Admin username: ')
     email = input('Admin email: ')
     password = input('Admin password: ')
-    
+
     with app.app_context():
         admin = User(username=username, email=email)
         admin.set_password(password)
-        
+
         try:
             db.session.add(admin)
             db.session.commit()
+            app.logger.info(f'Admin user "{username}" created via CLI command')
             print(f'Admin user "{username}" created successfully.')
         except Exception as e:
+            app.logger.error(f'Error creating admin user: {e}')
             print(f'Error creating admin user: {e}')
             db.session.rollback()
 

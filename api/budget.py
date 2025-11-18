@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from models import db, BudgetCategory, Transaction
 from utils import login_required_api, parse_currency, format_currency, get_budget_health_status
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 
 budget_api_bp = Blueprint('budget_api', __name__)
 
@@ -65,8 +66,9 @@ def create_category():
         allocated_amount = parse_currency(allocated_amount)
         if allocated_amount < 0:
             return jsonify({'error': 'Allocated amount cannot be negative'}), 400
-    except:
-        return jsonify({'error': 'Invalid allocated amount'}), 400
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f'Invalid allocated amount provided by user {current_user.username}: {e}')
+        return jsonify({'error': 'Invalid allocated amount format'}), 400
     
     if category_type not in ['income', 'expense', 'saving']:
         return jsonify({'error': 'Invalid category type'}), 400
@@ -163,14 +165,15 @@ def update_category(category_id):
             allocated_amount = parse_currency(data['allocated_amount'])
             if allocated_amount < 0:
                 return jsonify({'error': 'Allocated amount cannot be negative'}), 400
-            
+
             # Calculate the difference to adjust available amount
             difference = allocated_amount - category.allocated_amount
             category.allocated_amount = allocated_amount
             category.available_amount += difference
-            
-        except:
-            return jsonify({'error': 'Invalid allocated amount'}), 400
+
+        except (ValueError, InvalidOperation, TypeError) as e:
+            current_app.logger.warning(f'Invalid allocated amount provided by user {current_user.username}: {e}')
+            return jsonify({'error': 'Invalid allocated amount format'}), 400
     
     if 'category_type' in data:
         if data['category_type'] not in ['income', 'expense', 'saving']:
@@ -315,8 +318,9 @@ def transfer_budget():
         amount = parse_currency(amount)
         if amount <= 0:
             return jsonify({'error': 'Transfer amount must be positive'}), 400
-    except:
-        return jsonify({'error': 'Invalid transfer amount'}), 400
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f'Invalid transfer amount provided by user {current_user.username}: {e}')
+        return jsonify({'error': 'Invalid transfer amount format'}), 400
     
     # Get categories
     from_category = BudgetCategory.query.filter_by(id=from_category_id, user_id=current_user.id).first()

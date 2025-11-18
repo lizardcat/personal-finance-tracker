@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
 from utils import validate_email, validate_password_strength
+from logging_config import log_security_event
 import re
 from urllib.parse import urlparse, urljoin
 
@@ -49,6 +50,16 @@ def login():
             login_user(user, remember=remember_me)
             next_page = request.args.get('next')
 
+            # Log successful login
+            log_security_event(
+                'login_success',
+                user_id=user.id,
+                username=user.username,
+                ip_address=request.remote_addr,
+                details=f'Remember me: {remember_me}'
+            )
+            current_app.logger.info(f'User {user.username} logged in from IP {request.remote_addr}')
+
             # Validate next_page to prevent open redirect vulnerability
             if next_page:
                 # Parse the URL to check if it's a relative URL (same host)
@@ -68,6 +79,15 @@ def login():
 
             return redirect(redirect_url)
         else:
+            # Log failed login attempt
+            log_security_event(
+                'login_failed',
+                username=username_or_email,
+                ip_address=request.remote_addr,
+                details='Invalid credentials'
+            )
+            current_app.logger.warning(f'Failed login attempt for {username_or_email} from IP {request.remote_addr}')
+
             error_msg = 'Invalid username/email or password'
             if request.is_json:
                 return jsonify({'error': error_msg}), 401
@@ -147,26 +167,37 @@ def register():
             
             # Log in the new user
             login_user(user)
-            
+
+            # Log registration event
+            log_security_event(
+                'user_registered',
+                user_id=user.id,
+                username=username,
+                ip_address=request.remote_addr,
+                details=f'Email: {email}'
+            )
+            current_app.logger.info(f'New user registered: {username} from IP {request.remote_addr}')
+
             success_msg = f'Welcome {username}! Your account has been created successfully.'
-            
+
             if request.is_json:
                 return jsonify({
                     'success': True,
                     'message': success_msg,
                     'redirect': url_for('main.dashboard')
                 })
-            
+
             flash(success_msg, 'success')
             return redirect(url_for('main.dashboard'))
-            
+
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f'Registration error for {username}: {str(e)}', exc_info=True)
             error_msg = 'An error occurred during registration. Please try again.'
-            
+
             if request.is_json:
                 return jsonify({'error': error_msg}), 500
-            
+
             flash(error_msg, 'error')
     
     return render_template('auth.html', show_register=True)
@@ -175,11 +206,20 @@ def register():
 @login_required
 def logout():
     """User logout"""
+    # Log logout event before logging out
+    log_security_event(
+        'logout',
+        user_id=current_user.id,
+        username=current_user.username,
+        ip_address=request.remote_addr
+    )
+    current_app.logger.info(f'User {current_user.username} logged out from IP {request.remote_addr}')
+
     logout_user()
-    
+
     if request.is_json:
         return jsonify({'success': True, 'message': 'Logged out successfully'})
-    
+
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('main.index'))
 
@@ -250,22 +290,33 @@ def profile():
             current_user.default_currency = default_currency
             
             db.session.commit()
-            
+
+            # Log profile update
+            log_security_event(
+                'profile_updated',
+                user_id=current_user.id,
+                username=current_user.username,
+                ip_address=request.remote_addr,
+                details=f'Password changed: {bool(new_password)}, Email changed: {email and email != current_user.email}'
+            )
+            current_app.logger.info(f'User {current_user.username} updated profile from IP {request.remote_addr}')
+
             success_msg = 'Profile updated successfully'
-            
+
             if request.is_json:
                 return jsonify({'success': True, 'message': success_msg})
-            
+
             flash(success_msg, 'success')
             return redirect(url_for('auth.profile'))
-            
+
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f'Profile update error for user {current_user.username}: {str(e)}', exc_info=True)
             error_msg = 'An error occurred while updating your profile'
-            
+
             if request.is_json:
                 return jsonify({'error': error_msg}), 500
-            
+
             flash(error_msg, 'error')
     
     return render_template('settings.html', user=current_user)

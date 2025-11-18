@@ -1,10 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from models import db, Transaction, BudgetCategory
 from utils import login_required_api, parse_currency, format_currency
-from decimal import Decimal
+from logging_config import log_audit_event
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, date
 from sqlalchemy import desc, func
+from sqlalchemy.exc import SQLAlchemyError
 
 transactions_api_bp = Blueprint('transactions_api', __name__)
 
@@ -127,8 +129,9 @@ def create_transaction():
         amount = parse_currency(amount)
         if amount <= 0:
             return jsonify({'error': 'Amount must be positive'}), 400
-    except:
-        return jsonify({'error': 'Invalid amount'}), 400
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f'Invalid amount provided by user {current_user.username}: {e}')
+        return jsonify({'error': 'Invalid amount format'}), 400
     
     # Validate category if provided
     category = None
@@ -175,9 +178,21 @@ def create_transaction():
         # Update budget category if it's an expense
         if category and transaction_type == 'expense':
             category.available_amount -= amount
-        
+
         db.session.commit()
-        
+
+        # Log audit event for transaction creation
+        log_audit_event(
+            action='CREATE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction.id,
+            new_value=f'{transaction_type}: {amount} {currency} - {description}',
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction created: ID={transaction.id}, User={current_user.username}, Amount={amount}, Type={transaction_type}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction created successfully',
@@ -256,8 +271,9 @@ def update_transaction(transaction_id):
             if amount <= 0:
                 return jsonify({'error': 'Amount must be positive'}), 400
             transaction.amount = amount
-        except:
-            return jsonify({'error': 'Invalid amount'}), 400
+        except (ValueError, InvalidOperation, TypeError) as e:
+            current_app.logger.warning(f'Invalid amount provided by user {current_user.username}: {e}')
+            return jsonify({'error': 'Invalid amount format'}), 400
     
     if 'description' in data:
         description = data['description'].strip()
@@ -320,7 +336,20 @@ def update_transaction(transaction_id):
                 new_category.available_amount -= transaction.amount
         
         db.session.commit()
-        
+
+        # Log audit event for transaction update
+        log_audit_event(
+            action='UPDATE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction.id,
+            old_value=f'{original_type}: {original_amount} - {original_description}',
+            new_value=f'{transaction.transaction_type}: {transaction.amount} {transaction.currency} - {transaction.description}',
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction updated: ID={transaction.id}, User={current_user.username}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction updated successfully',
@@ -332,9 +361,14 @@ def update_transaction(transaction_id):
                 'transaction_date': transaction.transaction_date.isoformat() if transaction.transaction_date else None
             }
         })
-    
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f'Database error updating transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Database error occurred while updating transaction'}), 500
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Unexpected error updating transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to update transaction'}), 500
 
 @transactions_api_bp.route('/<int:transaction_id>', methods=['DELETE'])
@@ -346,23 +380,43 @@ def delete_transaction(transaction_id):
     if not transaction:
         return jsonify({'error': 'Transaction not found'}), 404
     
+    # Store transaction details before deletion for audit log
+    trans_details = f'{transaction.transaction_type}: {transaction.amount} {transaction.currency} - {transaction.description}'
+
     try:
         # Adjust budget category if needed
         if transaction.category_id and transaction.transaction_type == 'expense':
             category = BudgetCategory.query.get(transaction.category_id)
             if category:
                 category.available_amount += transaction.amount
-        
+
         db.session.delete(transaction)
         db.session.commit()
-        
+
+        # Log audit event for transaction deletion
+        log_audit_event(
+            action='DELETE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction_id,
+            old_value=trans_details,
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction deleted: ID={transaction_id}, User={current_user.username}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction deleted successfully'
         })
     
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f'Database error deleting transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Database error occurred while deleting transaction'}), 500
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Unexpected error deleting transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to delete transaction'}), 500
 
 @transactions_api_bp.route('/summary', methods=['GET'])

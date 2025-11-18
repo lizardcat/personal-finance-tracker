@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from models import db, Milestone
 from utils import login_required_api, parse_currency, format_currency
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, date
+from sqlalchemy.exc import SQLAlchemyError
 
 milestones_api_bp = Blueprint('milestones_api', __name__)
 
@@ -80,14 +81,16 @@ def create_milestone():
         target_amount = parse_currency(target_amount)
         if target_amount <= 0:
             return jsonify({'error': 'Target amount must be positive'}), 400
-    except:
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f"Invalid target amount provided: {target_amount}, error: {str(e)}")
         return jsonify({'error': 'Invalid target amount'}), 400
     
     try:
         current_amount = parse_currency(current_amount)
         if current_amount < 0:
             return jsonify({'error': 'Current amount cannot be negative'}), 400
-    except:
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f"Invalid current amount provided: {current_amount}, error: {str(e)}")
         return jsonify({'error': 'Invalid current amount'}), 400
     
     if current_amount > target_amount:
@@ -202,12 +205,13 @@ def update_milestone(milestone_id):
             target_amount = parse_currency(data['target_amount'])
             if target_amount <= 0:
                 return jsonify({'error': 'Target amount must be positive'}), 400
-            
+
             if target_amount < milestone.current_amount:
                 return jsonify({'error': 'Target amount cannot be less than current amount'}), 400
-            
+
             milestone.target_amount = target_amount
-        except:
+        except (ValueError, InvalidOperation, TypeError) as e:
+            current_app.logger.warning(f"Invalid target amount in update: {data.get('target_amount')}, error: {str(e)}")
             return jsonify({'error': 'Invalid target amount'}), 400
     
     if 'current_amount' in data:
@@ -215,12 +219,12 @@ def update_milestone(milestone_id):
             current_amount = parse_currency(data['current_amount'])
             if current_amount < 0:
                 return jsonify({'error': 'Current amount cannot be negative'}), 400
-            
+
             if current_amount > milestone.target_amount:
                 return jsonify({'error': 'Current amount cannot exceed target amount'}), 400
-            
+
             milestone.current_amount = current_amount
-            
+
             # Auto-complete if current amount reaches target
             if current_amount >= milestone.target_amount and not milestone.completed:
                 milestone.completed = True
@@ -228,8 +232,9 @@ def update_milestone(milestone_id):
             elif current_amount < milestone.target_amount and milestone.completed:
                 milestone.completed = False
                 milestone.completed_date = None
-                
-        except:
+
+        except (ValueError, InvalidOperation, TypeError) as e:
+            current_app.logger.warning(f"Invalid current amount in update: {data.get('current_amount')}, error: {str(e)}")
             return jsonify({'error': 'Invalid current amount'}), 400
     
     if 'target_date' in data:
@@ -321,7 +326,8 @@ def add_progress(milestone_id):
         amount = parse_currency(data['amount'])
         if amount <= 0:
             return jsonify({'error': 'Amount must be positive'}), 400
-    except:
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f"Invalid amount in add_progress: {data.get('amount')}, error: {str(e)}")
         return jsonify({'error': 'Invalid amount'}), 400
     
     new_current_amount = milestone.current_amount + amount
