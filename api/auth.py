@@ -3,17 +3,14 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
 from utils import validate_email, validate_password_strength
 from logging_config import log_security_event
+from limiter import limiter
 import re
 from urllib.parse import urlparse, urljoin
 
 auth_bp = Blueprint('auth', __name__)
 
-def get_limiter():
-    """Helper to get limiter from current app"""
-    return current_app.limiter
-
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@get_limiter().limit("5 per 15 minutes", methods=['POST'])
+@limiter.limit("5 per 15 minutes", methods=['POST'])
 def login():
     """User login"""
     if current_user.is_authenticated:
@@ -96,7 +93,7 @@ def login():
     return render_template('auth.html')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
-@get_limiter().limit("3 per hour", methods=['POST'])
+@limiter.limit("3 per hour", methods=['POST'])
 def register():
     """User registration"""
     if current_user.is_authenticated:
@@ -335,7 +332,7 @@ def user_info():
     })
 
 @auth_bp.route('/api/check-username')
-@get_limiter().limit("10 per minute")
+@limiter.limit("10 per minute")
 def check_username():
     """Check if username is available"""
     username = request.args.get('username', '').strip()
@@ -354,7 +351,7 @@ def check_username():
     })
 
 @auth_bp.route('/api/check-email')
-@get_limiter().limit("10 per minute")
+@limiter.limit("10 per minute")
 def check_email():
     """Check if email is available"""
     email = request.args.get('email', '').strip()
@@ -457,7 +454,7 @@ def backup_user_data():
 
 @auth_bp.route('/api/clear-data', methods=['POST'])
 @login_required
-@get_limiter().limit("3 per hour")
+@limiter.limit("3 per hour")
 def clear_user_data():
     """Clear all user data (transactions, categories, milestones)"""
     try:
@@ -499,7 +496,7 @@ def clear_user_data():
 
 @auth_bp.route('/api/change-password', methods=['POST'])
 @login_required
-@get_limiter().limit("5 per hour")
+@limiter.limit("5 per hour")
 def change_password():
     """Change user password"""
     try:

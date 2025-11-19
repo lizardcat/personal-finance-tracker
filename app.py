@@ -1,11 +1,10 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_required, current_user
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
 from models import db, User
 from config import config
 from logging_config import setup_logging
+from limiter import limiter
 import os
 
 def create_app(config_name=None):
@@ -23,13 +22,7 @@ def create_app(config_name=None):
     setup_logging(app)
 
     # Setup rate limiting
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://",
-        strategy="fixed-window"
-    )
+    limiter.init_app(app)
 
     # Setup Flask-Login
     login_manager = LoginManager()
@@ -58,9 +51,6 @@ def create_app(config_name=None):
     app.register_blueprint(milestones_api_bp, url_prefix='/api/milestones')
     app.register_blueprint(reports_api_bp, url_prefix='/api/reports')
     app.register_blueprint(reconciliation_api_bp, url_prefix='/api/reconciliation')
-
-    # Store limiter in app for use in blueprints
-    app.limiter = limiter
 
     # Enable HTTPS enforcement in production
     if config_name == 'production':
