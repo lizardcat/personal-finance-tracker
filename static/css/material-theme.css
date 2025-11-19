@@ -1,30 +1,31 @@
 /**
  * Material Design 3 Theme for Personal Finance Tracker
  * Inspired by Google's Material You design system
+ * Now with Dark Mode Support and Improved Color Palette
  */
 
 :root {
-    /* Material Design 3 Color Palette */
-    --md-primary: #1E88E5;
-    --md-primary-dark: #1565C0;
-    --md-primary-light: #64B5F6;
-    --md-secondary: #26A69A;
-    --md-secondary-dark: #00897B;
-    --md-secondary-light: #80CBC4;
-    --md-success: #43A047;
-    --md-warning: #FB8C00;
-    --md-error: #E53935;
-    --md-info: #039BE5;
+    /* Material Design 3 Color Palette - Emerald/Teal Theme */
+    --md-primary: #10B981;
+    --md-primary-dark: #059669;
+    --md-primary-light: #34D399;
+    --md-secondary: #14B8A6;
+    --md-secondary-dark: #0D9488;
+    --md-secondary-light: #5EEAD4;
+    --md-success: #22C55E;
+    --md-warning: #F59E0B;
+    --md-error: #EF4444;
+    --md-info: #3B82F6;
 
-    /* Surface colors */
+    /* Surface colors - Light Mode */
     --md-surface: #FFFFFF;
-    --md-surface-variant: #F5F5F5;
-    --md-surface-container: #FAFAFA;
-    --md-surface-container-high: #EEEEEE;
+    --md-surface-variant: #F3F4F6;
+    --md-surface-container: #F9FAFB;
+    --md-surface-container-high: #E5E7EB;
 
-    /* Text colors */
-    --md-on-surface: #1C1B1F;
-    --md-on-surface-variant: #757575;
+    /* Text colors - Light Mode */
+    --md-on-surface: #111827;
+    --md-on-surface-variant: #6B7280;
     --md-on-primary: #FFFFFF;
 
     /* Elevation shadows */
@@ -45,6 +46,39 @@
     --md-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
     --md-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
     --md-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Mode Theme */
+[data-theme="dark"] {
+    /* Keep same primary colors but adjust for dark backgrounds */
+    --md-primary: #34D399;
+    --md-primary-dark: #10B981;
+    --md-primary-light: #6EE7B7;
+    --md-secondary: #5EEAD4;
+    --md-secondary-dark: #14B8A6;
+    --md-secondary-light: #99F6E4;
+    --md-success: #4ADE80;
+    --md-warning: #FBBF24;
+    --md-error: #F87171;
+    --md-info: #60A5FA;
+
+    /* Surface colors - Dark Mode */
+    --md-surface: #1F2937;
+    --md-surface-variant: #111827;
+    --md-surface-container: #374151;
+    --md-surface-container-high: #4B5563;
+
+    /* Text colors - Dark Mode */
+    --md-on-surface: #F9FAFB;
+    --md-on-surface-variant: #D1D5DB;
+    --md-on-primary: #111827;
+
+    /* Dark mode shadows (lighter for visibility) */
+    --md-elevation-1: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5);
+    --md-elevation-2: 0 3px 6px rgba(0,0,0,0.5), 0 3px 6px rgba(0,0,0,0.6);
+    --md-elevation-3: 0 10px 20px rgba(0,0,0,0.6), 0 6px 6px rgba(0,0,0,0.7);
+    --md-elevation-4: 0 14px 28px rgba(0,0,0,0.7), 0 10px 10px rgba(0,0,0,0.8);
+    --md-elevation-5: 0 19px 38px rgba(0,0,0,0.8), 0 15px 12px rgba(0,0,0,0.9);
 }
 
 /* Global Styles */
@@ -166,7 +200,7 @@ body {
 }
 
 .md-btn-outlined:hover {
-    background-color: rgba(30, 136, 229, 0.08);
+    background-color: rgba(16, 185, 129, 0.08);
 }
 
 .md-btn-text {
@@ -176,7 +210,7 @@ body {
 }
 
 .md-btn-text:hover {
-    background-color: rgba(30, 136, 229, 0.08);
+    background-color: rgba(16, 185, 129, 0.08);
 }
 
 .md-btn-icon {
@@ -368,7 +402,7 @@ body {
 }
 
 .md-chip-primary {
-    background-color: rgba(30, 136, 229, 0.12);
+    background-color: rgba(16, 185, 129, 0.12);
     color: var(--md-primary);
 }
 

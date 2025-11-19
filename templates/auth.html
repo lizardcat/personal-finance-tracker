@@ -249,7 +249,7 @@
         <!-- Footer -->
         <div class="auth-footer">
             <p style="font-size: 13px; opacity: 0.9; margin: 16px 0 0 0;">
-                © 2024 Personal Finance Tracker. Secure & Private.
+                © <span id="currentYear"></span> Personal Finance Tracker. Secure & Private.
             </p>
         </div>
     </div>
@@ -269,6 +269,9 @@
                 icon.classList.add('fa-eye');
             }
         }
+
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
 
         // Auto-hide flash messages
         document.addEventListener('DOMContentLoaded', function() {

@@ -231,6 +231,11 @@ def settings():
     """User settings and preferences"""
     return render_template('settings.html', user=current_user)
 
+@main_bp.route('/faq')
+def faq():
+    """YNAB principles and FAQ page"""
+    return render_template('faq.html')
+
 @main_bp.route('/milestones')
 @login_required
 def milestones():

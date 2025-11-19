@@ -63,11 +63,23 @@
                 <i class="fas fa-cog md-nav-icon"></i>
                 <span>Settings</span>
             </a>
+            <a href="{{ url_for('main.faq') }}" class="md-nav-item {% if request.endpoint == 'main.faq' %}active{% endif %}">
+                <i class="fas fa-lightbulb md-nav-icon"></i>
+                <span>YNAB Guide</span>
+            </a>
         </div>
 
         <!-- User Profile Section -->
-        <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 16px; border-top: 1px solid var(--md-surface-container-high);">
-            <div style="display: flex; align-items: center; gap: 12px; padding: 12px;">
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid var(--md-surface-container-high);">
+            <!-- Dark Mode Toggle -->
+            <div style="padding: 12px 24px;">
+                <button onclick="toggleTheme()" class="md-btn-icon" style="width: 100%; display: flex; align-items: center; gap: 12px; justify-content: flex-start; border: none; background: transparent; cursor: pointer; padding: 12px; border-radius: var(--md-radius-md); transition: background-color var(--md-transition-fast);" onmouseover="this.style.backgroundColor='var(--md-surface-container)'" onmouseout="this.style.backgroundColor='transparent'">
+                    <i id="theme-icon" class="fas fa-moon" style="font-size: 20px; color: var(--md-on-surface-variant);"></i>
+                    <span id="theme-text" style="color: var(--md-on-surface-variant); font-size: 14px; font-weight: 500;">Dark Mode</span>
+                </button>
+            </div>
+            <!-- User Profile -->
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 24px;">
                 <i class="fas fa-user-circle" style="font-size: 32px; color: var(--md-on-surface-variant);"></i>
                 <div style="flex: 1;">
                     <div style="font-weight: 500; color: var(--md-on-surface);">
@@ -105,6 +117,47 @@
 
     <!-- Material Design JavaScript -->
     <script>
+        // Dark Mode Toggle Functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update toggle button
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (newTheme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeText.textContent = 'Light Mode';
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                themeText.textContent = 'Dark Mode';
+            }
+        }
+
+        // Initialize theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            html.setAttribute('data-theme', savedTheme);
+
+            // Update toggle button to match initial theme
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (savedTheme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                themeText.textContent = 'Light Mode';
+            }
+        })();
+
         // Auto-hide snackbars after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
             const snackbars = document.querySelectorAll('.md-snackbar');
