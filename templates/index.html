@@ -1,69 +1,410 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Personal Finance Tracker</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker - YNAB Budgeting Made Easy</title>
+
+    <!-- Google Fonts - Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Material Design Theme -->
+    <link href="{{ url_for('static', filename='css/material-theme.css') }}" rel="stylesheet">
+
+    <style>
+        /* Landing page specific styles */
+        .landing-hero {
+            background: linear-gradient(135deg, var(--md-primary), var(--md-secondary));
+            color: white;
+            padding: 80px 24px;
+            text-align: center;
+            border-radius: var(--md-radius-xl);
+            margin-bottom: 48px;
+        }
+
+        .landing-hero h1 {
+            font-size: 48px;
+            font-weight: 500;
+            margin: 0 0 16px 0;
+        }
+
+        .landing-hero p {
+            font-size: 20px;
+            opacity: 0.95;
+            margin: 0 0 32px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .landing-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--md-surface);
+            box-shadow: var(--md-elevation-1);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .landing-nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--md-primary);
+            text-decoration: none;
+        }
+
+        .landing-nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .landing-nav-link {
+            color: var(--md-on-surface);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color var(--md-transition-fast);
+        }
+
+        .landing-nav-link:hover {
+            color: var(--md-primary);
+        }
+
+        .landing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 24px 48px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .feature-card {
+            background: var(--md-surface);
+            border-radius: var(--md-radius-lg);
+            padding: 32px;
+            text-align: center;
+            box-shadow: var(--md-elevation-1);
+            transition: all var(--md-transition-normal);
+        }
+
+        .feature-card:hover {
+            box-shadow: var(--md-elevation-3);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--md-primary-light), var(--md-primary));
+            border-radius: var(--md-radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: white;
+            font-size: 32px;
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 0 0 12px 0;
+            color: var(--md-on-surface);
+        }
+
+        .feature-description {
+            font-size: 15px;
+            color: var(--md-on-surface-variant);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .landing-footer {
+            background: var(--md-surface-container);
+            padding: 32px 24px;
+            text-align: center;
+            margin-top: 48px;
+            border-radius: var(--md-radius-lg);
+        }
+
+        .theme-toggle-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: var(--md-radius-full);
+            background: var(--md-primary);
+            color: white;
+            border: none;
+            box-shadow: var(--md-elevation-3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all var(--md-transition-normal);
+            z-index: 999;
+        }
+
+        .theme-toggle-fab:hover {
+            box-shadow: var(--md-elevation-4);
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .landing-hero h1 {
+                font-size: 32px;
+            }
+
+            .landing-hero p {
+                font-size: 16px;
+            }
+
+            .landing-nav-links {
+                display: none;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">Finance Tracker</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/dashboard">Dashboard</a>
-                <a class="nav-link" href="/budget">Budget</a>
-                <a class="nav-link" href="/transactions">Transactions</a>
-                <a class="nav-link" href="/reports">Reports</a>
-            </div>
+    <!-- Navigation -->
+    <nav class="landing-nav">
+        <a href="/" class="landing-nav-brand">
+            <i class="fas fa-wallet" style="font-size: 24px;"></i>
+            <span>Finance Tracker</span>
+        </a>
+        <div class="landing-nav-links">
+            <a href="{{ url_for('main.faq') }}" class="landing-nav-link">
+                <i class="fas fa-lightbulb"></i> Learn YNAB
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="md-btn md-btn-outlined">Sign In</a>
+            <a href="{{ url_for('auth.register') }}" class="md-btn md-btn-filled">Get Started</a>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-12">
-                <div class="jumbotron bg-light p-5 rounded">
-                    <h1 class="display-4">Welcome to Personal Finance Tracker</h1>
-                    <p class="lead">Take control of your finances with YNAB principles - Give Every Shilling a Job!</p>
-                    <div class="mt-4">
-                        <a class="btn btn-primary btn-lg me-3" href="/dashboard">Go to Dashboard</a>
-                        <a class="btn btn-outline-secondary btn-lg" href="/budget">View Budget</a>
+    <!-- Main Content -->
+    <div class="landing-container">
+        <!-- Hero Section -->
+        <div class="landing-hero">
+            <h1>Take Control of Your Finances</h1>
+            <p>Master your money with YNAB principles. Budget smarter, save more, and achieve your financial goals.</p>
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('auth.register') }}" class="md-btn md-btn-filled" style="background: white; color: var(--md-primary); font-size: 16px; padding: 12px 32px;">
+                    <i class="fas fa-rocket"></i>
+                    Start Free
+                </a>
+                <a href="{{ url_for('main.faq') }}" class="md-btn md-btn-outlined" style="border-color: white; color: white; font-size: 16px; padding: 12px 32px;">
+                    <i class="fas fa-book"></i>
+                    Learn How It Works
+                </a>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <h2 style="text-align: center; font-size: 32px; font-weight: 500; margin: 0 0 48px 0; color: var(--md-on-surface);">
+            Everything You Need to Budget Successfully
+        </h2>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <h3 class="feature-title">Smart Budgeting</h3>
+                <p class="feature-description">
+                    Give every dollar a job using YNAB's proven methodology. Create categories, allocate funds, and stay in control.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h3 class="feature-title">Transaction Tracking</h3>
+                <p class="feature-description">
+                    Record income and expenses effortlessly. Support for recurring transactions keeps your budget on autopilot.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="feature-title">Financial Reports</h3>
+                <p class="feature-description">
+                    Visualize your spending patterns, track trends, and make data-driven decisions about your money.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-flag-checkered"></i>
+                </div>
+                <h3 class="feature-title">Savings Milestones</h3>
+                <p class="feature-description">
+                    Set financial goals and track your progress. Whether it's an emergency fund or vacation, we've got you covered.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <h3 class="feature-title">Account Reconciliation</h3>
+                <p class="feature-description">
+                    Match your budget with bank statements to ensure accuracy and catch errors before they become problems.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <h3 class="feature-title">Budget Templates</h3>
+                <p class="feature-description">
+                    Save time with reusable templates. Set up your budget once and apply it month after month.
+                </p>
+            </div>
+        </div>
+
+        <!-- YNAB Principles Teaser -->
+        <div class="md-card" style="margin: 48px 0; background: linear-gradient(135deg, var(--md-surface-container), var(--md-surface));">
+            <div class="md-card-body" style="padding: 48px;">
+                <h2 style="text-align: center; font-size: 32px; font-weight: 500; margin: 0 0 24px 0; color: var(--md-on-surface);">
+                    Built on YNAB's Four Rules
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 48px; color: var(--md-primary); font-weight: 700; margin-bottom: 8px;">1</div>
+                        <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">Give Every Dollar a Job</h4>
+                        <p style="font-size: 14px; color: var(--md-on-surface-variant); margin: 0;">Allocate all your money to specific categories</p>
                     </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 48px; color: var(--md-secondary); font-weight: 700; margin-bottom: 8px;">2</div>
+                        <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">Embrace True Expenses</h4>
+                        <p style="font-size: 14px; color: var(--md-on-surface-variant); margin: 0;">Plan for irregular expenses ahead of time</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 48px; color: var(--md-warning); font-weight: 700; margin-bottom: 8px;">3</div>
+                        <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">Roll With the Punches</h4>
+                        <p style="font-size: 14px; color: var(--md-on-surface-variant); margin: 0;">Adapt your budget when life happens</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 48px; color: var(--md-success); font-weight: 700; margin-bottom: 8px;">4</div>
+                        <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">Age Your Money</h4>
+                        <p style="font-size: 14px; color: var(--md-on-surface-variant); margin: 0;">Break the paycheck-to-paycheck cycle</p>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <a href="{{ url_for('main.faq') }}" class="md-btn md-btn-filled" style="font-size: 16px; padding: 12px 32px;">
+                        <i class="fas fa-book-open"></i>
+                        Read the Complete Guide
+                    </a>
                 </div>
             </div>
         </div>
-        
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Budget Management</h5>
-                        <p class="card-text">Create and manage your budget categories following YNAB principles.</p>
-                        <a href="/budget" class="btn btn-primary">Manage Budget</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Track Transactions</h5>
-                        <p class="card-text">Record and categorize your income and expenses.</p>
-                        <a href="/transactions" class="btn btn-primary">View Transactions</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Financial Reports</h5>
-                        <p class="card-text">Generate insights and reports on your financial health.</p>
-                        <a href="/reports" class="btn btn-primary">View Reports</a>
-                    </div>
-                </div>
+
+        <!-- CTA Section -->
+        <div style="text-align: center; padding: 48px 24px; background: var(--md-surface-container); border-radius: var(--md-radius-xl); margin: 48px 0;">
+            <h2 style="font-size: 32px; font-weight: 500; margin: 0 0 16px 0; color: var(--md-on-surface);">
+                Ready to Transform Your Finances?
+            </h2>
+            <p style="font-size: 18px; color: var(--md-on-surface-variant); margin: 0 0 32px 0; max-width: 600px; margin-left: auto; margin-right: auto;">
+                Join thousands of users who have taken control of their money with our YNAB-inspired budget tracker.
+            </p>
+            <a href="{{ url_for('auth.register') }}" class="md-btn md-btn-filled" style="font-size: 18px; padding: 14px 36px;">
+                <i class="fas fa-user-plus"></i>
+                Create Your Free Account
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="landing-footer">
+            <p style="font-size: 14px; color: var(--md-on-surface-variant); margin: 0 0 16px 0;">
+                © <span id="currentYear"></span> Personal Finance Tracker. Secure & Private.
+            </p>
+            <div style="display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('main.faq') }}" style="color: var(--md-primary); text-decoration: none; font-size: 14px;">
+                    <i class="fas fa-lightbulb"></i> YNAB Guide
+                </a>
+                <a href="{{ url_for('auth.login') }}" style="color: var(--md-primary); text-decoration: none; font-size: 14px;">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </a>
+                <a href="{{ url_for('auth.register') }}" style="color: var(--md-primary); text-decoration: none; font-size: 14px;">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Dark Mode Toggle FAB -->
+    <button onclick="toggleTheme()" class="theme-toggle-fab" id="theme-toggle" title="Toggle dark mode">
+        <i id="theme-icon-fab" class="fas fa-moon"></i>
+    </button>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Dark Mode Toggle Functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update FAB icon
+            const themeIcon = document.getElementById('theme-icon-fab');
+            if (newTheme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            }
+        }
+
+        // Initialize theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            html.setAttribute('data-theme', savedTheme);
+
+            // Update FAB icon to match initial theme
+            const themeIcon = document.getElementById('theme-icon-fab');
+            if (savedTheme === 'dark') {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            }
+        })();
+    </script>
 </body>
 </html>
