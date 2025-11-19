@@ -189,6 +189,11 @@
             .feature-grid {
                 grid-template-columns: 1fr;
             }
+
+            .ynab-rules-grid {
+                grid-template-columns: 1fr !important;
+                gap: 32px !important;
+            }
         }
     </style>
 </head>
@@ -299,7 +304,7 @@
                 <h2 style="text-align: center; font-size: 32px; font-weight: 500; margin: 0 0 24px 0; color: var(--md-on-surface);">
                     Built on YNAB's Four Rules
                 </h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin-bottom: 32px;">
+                <div class="ynab-rules-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 48px; margin-bottom: 32px; max-width: 900px; margin-left: auto; margin-right: auto;">
                     <div style="text-align: center;">
                         <div style="font-size: 48px; color: var(--md-primary); font-weight: 700; margin-bottom: 8px;">1</div>
                         <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0;">Give Every Dollar a Job</h4>
