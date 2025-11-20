@@ -53,6 +53,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 ```bash
 # Email Configuration (if you want email functionality)
+# Required for: Welcome emails, Password recovery, Future notifications
 MAIL_SERVER=smtp.sendgrid.net
 MAIL_PORT=587
 MAIL_USE_TLS=true
@@ -60,6 +61,11 @@ MAIL_USERNAME=apikey
 MAIL_PASSWORD=<your-sendgrid-api-key>
 MAIL_DEFAULT_SENDER=noreply@yourdomain.com
 ```
+
+**Email Features (when configured):**
+- ✉️ **Welcome emails** - Beautiful onboarding emails for new users
+- 🔐 **Password recovery** - Secure password reset functionality
+- 📬 **Future notifications** - Ready for additional features
 
 **Recommended Email Providers:**
 - **SendGrid** (100 emails/day free) - https://sendgrid.com

@@ -176,6 +176,185 @@ def register():
             )
             current_app.logger.info(f'New user registered: {username} from IP {request.remote_addr}')
 
+            # Send welcome email (if email is configured)
+            try:
+                from app import mail
+
+                # Check if mail is configured
+                if current_app.config.get('MAIL_USERNAME'):
+                    dashboard_url = url_for('main.dashboard', _external=True)
+                    faq_url = url_for('main.faq', _external=True)
+
+                    msg = Message(
+                        subject='Welcome to Personal Finance Tracker!',
+                        recipients=[email],
+                        html=f'''
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                body {{
+                                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                    line-height: 1.6;
+                                    color: #333;
+                                    margin: 0;
+                                    padding: 0;
+                                    background-color: #f4f4f4;
+                                }}
+                                .container {{
+                                    max-width: 600px;
+                                    margin: 40px auto;
+                                    background: white;
+                                    border-radius: 12px;
+                                    overflow: hidden;
+                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                }}
+                                .header {{
+                                    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                                    color: white;
+                                    padding: 40px 30px;
+                                    text-align: center;
+                                }}
+                                .header h1 {{
+                                    margin: 0;
+                                    font-size: 28px;
+                                    font-weight: 500;
+                                }}
+                                .content {{
+                                    padding: 40px 30px;
+                                }}
+                                .content h2 {{
+                                    color: #10B981;
+                                    font-size: 22px;
+                                    margin-top: 0;
+                                }}
+                                .button {{
+                                    display: inline-block;
+                                    padding: 14px 32px;
+                                    background: #10B981;
+                                    color: white;
+                                    text-decoration: none;
+                                    border-radius: 8px;
+                                    margin: 20px 0;
+                                    font-weight: 500;
+                                }}
+                                .features {{
+                                    background: #f9fafb;
+                                    padding: 20px;
+                                    border-radius: 8px;
+                                    margin: 20px 0;
+                                }}
+                                .features h3 {{
+                                    color: #059669;
+                                    margin-top: 0;
+                                    font-size: 18px;
+                                }}
+                                .features ul {{
+                                    margin: 0;
+                                    padding-left: 20px;
+                                }}
+                                .features li {{
+                                    margin: 8px 0;
+                                    color: #4b5563;
+                                }}
+                                .footer {{
+                                    background: #f9fafb;
+                                    padding: 20px 30px;
+                                    text-align: center;
+                                    color: #6b7280;
+                                    font-size: 14px;
+                                }}
+                                .footer a {{
+                                    color: #10B981;
+                                    text-decoration: none;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <h1>🎉 Welcome to Personal Finance Tracker!</h1>
+                                </div>
+
+                                <div class="content">
+                                    <h2>Hi {username}!</h2>
+
+                                    <p>Thank you for joining Personal Finance Tracker. We're excited to help you take control of your finances using proven YNAB (You Need A Budget) principles.</p>
+
+                                    <p style="text-align: center;">
+                                        <a href="{dashboard_url}" class="button">Go to Your Dashboard</a>
+                                    </p>
+
+                                    <div class="features">
+                                        <h3>🚀 Getting Started</h3>
+                                        <ul>
+                                            <li><strong>Set up your budget categories</strong> - Organize your spending into meaningful categories</li>
+                                            <li><strong>Track your transactions</strong> - Record income and expenses as they happen</li>
+                                            <li><strong>Set financial goals</strong> - Create milestones to track your progress</li>
+                                            <li><strong>Learn YNAB principles</strong> - Master the four rules of budgeting</li>
+                                        </ul>
+                                    </div>
+
+                                    <p><strong>New to YNAB?</strong> Check out our <a href="{faq_url}" style="color: #10B981;">YNAB Guide</a> to learn the four powerful rules that will transform your relationship with money.</p>
+
+                                    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                        If you have any questions or need help getting started, don't hesitate to reach out!
+                                    </p>
+
+                                    <p style="margin-bottom: 0;">
+                                        Happy budgeting!<br>
+                                        <strong>The Finance Tracker Team</strong>
+                                    </p>
+                                </div>
+
+                                <div class="footer">
+                                    <p>© 2024 Personal Finance Tracker. Secure & Private.</p>
+                                    <p style="margin: 8px 0 0 0;">
+                                        Made with ❤️ by <a href="https://github.com/lizardcat" target="_blank">Alex Raza</a>
+                                    </p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        ''',
+                        body=f'''
+Welcome to Personal Finance Tracker!
+
+Hi {username},
+
+Thank you for joining Personal Finance Tracker. We're excited to help you take control of your finances using proven YNAB (You Need A Budget) principles.
+
+Getting Started:
+- Set up your budget categories
+- Track your transactions
+- Set financial goals
+- Learn YNAB principles
+
+Visit your dashboard: {dashboard_url}
+Learn about YNAB: {faq_url}
+
+If you have any questions or need help getting started, don't hesitate to reach out!
+
+Happy budgeting!
+The Finance Tracker Team
+
+---
+© 2024 Personal Finance Tracker
+Made with ❤️ by Alex Raza - https://github.com/lizardcat
+                        '''
+                    )
+
+                    mail.send(msg)
+                    current_app.logger.info(f'Welcome email sent to {email}')
+                else:
+                    current_app.logger.info(f'Email not configured - skipping welcome email for {email}')
+
+            except Exception as email_error:
+                # Don't fail registration if email fails - just log it
+                current_app.logger.warning(f'Failed to send welcome email to {email}: {str(email_error)}')
+
             success_msg = f'Welcome {username}! Your account has been created successfully.'
 
             if request.is_json:
