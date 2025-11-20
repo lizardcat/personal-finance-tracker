@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from models import db, BudgetCategory, Transaction, Milestone, ExchangeRate
 from utils import get_month_range, get_transaction_summary, format_currency, get_budget_health_status
@@ -180,7 +180,8 @@ def reports():
     try:
         start_date = datetime.fromisoformat(start_date).date()
         end_date = datetime.fromisoformat(end_date).date()
-    except:
+    except (ValueError, TypeError) as e:
+        current_app.logger.warning(f"Invalid date format provided: start={start_date}, end={end_date}, error: {str(e)}")
         start_date, end_date = get_month_range(today.year, today.month)
     
     # Get transactions in date range
@@ -230,6 +231,33 @@ def settings():
     """User settings and preferences"""
     return render_template('settings.html', user=current_user)
 
+@main_bp.route('/faq')
+def faq():
+    """YNAB principles and FAQ page"""
+    return render_template('faq.html')
+
+@main_bp.route('/milestones')
+@login_required
+def milestones():
+    """Milestones management page"""
+    # Get milestones for initial render (actual data loaded via API)
+    milestones = Milestone.query.filter_by(user_id=current_user.id)\
+        .order_by(Milestone.target_date.asc().nullslast(), Milestone.created_at.desc()).all()
+
+    return render_template('milestones.html', milestones=milestones)
+
+@main_bp.route('/reconciliation')
+@login_required
+def reconciliation():
+    """Account reconciliation page"""
+    from models import AccountReconciliation
+
+    # Get recent reconciliations for display
+    reconciliations = AccountReconciliation.query.filter_by(user_id=current_user.id)\
+        .order_by(AccountReconciliation.statement_date.desc()).limit(10).all()
+
+    return render_template('reconciliation.html', reconciliations=reconciliations)
+
 @main_bp.route('/api/dashboard-data')
 @login_required
 def dashboard_data():
@@ -278,11 +306,23 @@ def monthly_trend():
 @main_bp.route('/health')
 def health_check():
     """Health check endpoint for monitoring"""
+    try:
+        # Test database connection
+        db.session.execute('SELECT 1')
+        db_status = 'connected'
+        status = 'healthy'
+        status_code = 200
+    except Exception as e:
+        current_app.logger.error(f'Health check failed: {str(e)}')
+        db_status = 'disconnected'
+        status = 'unhealthy'
+        status_code = 503
+
     return jsonify({
-        'status': 'healthy',
+        'status': status,
         'timestamp': datetime.utcnow().isoformat(),
-        'database': 'connected'
-    })
+        'database': db_status
+    }), status_code
 
 # Error handler helpers
 @main_bp.app_errorhandler(404)

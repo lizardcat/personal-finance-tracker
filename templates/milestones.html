@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+
+{% block title %}Milestones - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div style="padding: 32px 0 24px 0; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-flag-checkered"></i>
+            Milestones
+        </h1>
+        <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Track your financial goals and progress</p>
+    </div>
+    <button class="md-btn md-btn-fab" onclick="openMilestoneModal()" title="Add Milestone">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+
+<!-- Summary Cards -->
+<div class="md-grid md-grid-cols-4" id="summaryCards" style="margin-bottom: 32px;">
+    <!-- Will be populated by JavaScript -->
+</div>
+
+<!-- Filter Tabs -->
+<div style="margin-bottom: 24px; border-bottom: 2px solid var(--md-surface-container-high);">
+    <div style="display: flex; gap: 24px;">
+        <button class="filter-tab active" data-filter="all" onclick="filterMilestones('all')">
+            All
+        </button>
+        <button class="filter-tab" data-filter="active" onclick="filterMilestones('active')">
+            Active
+        </button>
+        <button class="filter-tab" data-filter="completed" onclick="filterMilestones('completed')">
+            Completed
+        </button>
+        <button class="filter-tab" data-filter="overdue" onclick="filterMilestones('overdue')">
+            Overdue
+        </button>
+    </div>
+</div>
+
+<!-- Milestones List -->
+<div id="milestonesList">
+    <!-- Will be populated by JavaScript -->
+</div>
+
+<!-- Add/Edit Milestone Modal -->
+<div class="md-modal" id="milestoneModal">
+    <div class="md-modal-content" style="max-width: 600px;">
+        <div class="md-modal-header">
+            <h5 class="md-modal-title" id="modalTitle">Add New Milestone</h5>
+            <button class="md-modal-close" onclick="closeMilestoneModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="md-modal-body">
+            <form id="milestoneForm">
+                <input type="hidden" id="milestone_id">
+
+                <div class="md-text-field">
+                    <input type="text" id="milestone_name" name="name" placeholder=" " required>
+                    <label for="milestone_name">Milestone Name</label>
+                </div>
+
+                <div class="md-text-field">
+                    <textarea id="milestone_description" name="description" placeholder=" " rows="3"></textarea>
+                    <label for="milestone_description">Description (optional)</label>
+                </div>
+
+                <div class="md-grid md-grid-cols-2">
+                    <div class="md-text-field">
+                        <input type="number" id="target_amount" name="target_amount" placeholder=" " step="0.01" min="0" required>
+                        <label for="target_amount">Target Amount ($)</label>
+                    </div>
+
+                    <div class="md-text-field">
+                        <input type="number" id="current_amount" name="current_amount" placeholder=" " step="0.01" min="0" value="0">
+                        <label for="current_amount">Current Amount ($)</label>
+                    </div>
+                </div>
+
+                <div class="md-grid md-grid-cols-2">
+                    <div class="md-text-field">
+                        <input type="date" id="target_date" name="target_date" placeholder=" ">
+                        <label for="target_date">Target Date (optional)</label>
+                    </div>
+
+                    <div class="md-text-field">
+                        <select id="category" name="category">
+                            <option value="saving">Saving</option>
+                            <option value="debt">Debt Payoff</option>
+                            <option value="investment">Investment</option>
+                        </select>
+                        <label for="category">Category</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="md-modal-footer">
+            <button type="button" class="md-btn md-btn-text" onclick="closeMilestoneModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="saveMilestone()">Save Milestone</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Progress Modal -->
+<div class="md-modal" id="progressModal">
+    <div class="md-modal-content" style="max-width: 400px;">
+        <div class="md-modal-header">
+            <h5 class="md-modal-title">Add Progress</h5>
+            <button class="md-modal-close" onclick="closeProgressModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="md-modal-body">
+            <input type="hidden" id="progress_milestone_id">
+            <p id="progress_milestone_name" style="margin-bottom: 16px; color: var(--md-on-surface-variant);"></p>
+
+            <div class="md-text-field">
+                <input type="number" id="progress_amount" placeholder=" " step="0.01" min="0.01" required>
+                <label for="progress_amount">Amount to Add ($)</label>
+            </div>
+        </div>
+        <div class="md-modal-footer">
+            <button type="button" class="md-btn md-btn-text" onclick="closeProgressModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="addProgress()">Add Progress</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.filter-tab {
+    background: none;
+    border: none;
+    padding: 12px 0;
+    color: var(--md-on-surface-variant);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: color 150ms;
+}
+
+.filter-tab:hover {
+    color: var(--md-primary);
+}
+
+.filter-tab.active {
+    color: var(--md-primary);
+}
+
+.filter-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--md-primary);
+}
+
+.milestone-card {
+    background: var(--md-surface);
+    border-radius: var(--md-radius-lg);
+    box-shadow: var(--md-elevation-1);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: box-shadow 250ms;
+}
+
+.milestone-card:hover {
+    box-shadow: var(--md-elevation-2);
+}
+
+.milestone-card.completed {
+    opacity: 0.8;
+}
+
+.milestone-card.overdue {
+    border-left: 4px solid var(--md-error);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: var(--md-surface-container-high);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 12px 0;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--md-primary), var(--md-secondary));
+    border-radius: 4px;
+    transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.category-saving {
+    background-color: rgba(30, 136, 229, 0.12);
+    color: var(--md-primary);
+}
+
+.category-debt {
+    background-color: rgba(229, 57, 53, 0.12);
+    color: var(--md-error);
+}
+
+.category-investment {
+    background-color: rgba(67, 160, 71, 0.12);
+    color: var(--md-success);
+}
+</style>
+
+<script>
+let currentFilter = 'all';
+let allMilestones = [];
+
+// Load milestones on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadMilestones();
+    loadSummary();
+});
+
+async function loadMilestones() {
+    try {
+        const url = currentFilter === 'all'
+            ? '/api/milestones/'
+            : `/api/milestones/?status=${currentFilter}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        allMilestones = data.milestones;
+        renderMilestones(allMilestones);
+    } catch (error) {
+        console.error('Error loading milestones:', error);
+        showMaterialSnackbar('Failed to load milestones', 'error');
+    }
+}
+
+async function loadSummary() {
+    try {
+        const response = await fetch('/api/milestones/summary');
+        const data = await response.json();
+
+        renderSummary(data);
+    } catch (error) {
+        console.error('Error loading summary:', error);
+    }
+}
+
+function renderSummary(data) {
+    const summaryHtml = `
+        <div class="md-card" style="background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-primary-dark) 100%); color: white;">
+            <div class="md-card-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <h5 style="margin: 0; font-size: 14px; font-weight: 500; opacity: 0.9;">Total Milestones</h5>
+                    <i class="fas fa-flag-checkered" style="font-size: 24px; opacity: 0.7;"></i>
+                </div>
+                <h2 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 400;">${data.totals.count}</h2>
+                <p style="margin: 0; font-size: 12px; opacity: 0.8;">${data.totals.active} active, ${data.totals.completed} completed</p>
+            </div>
+        </div>
+
+        <div class="md-card">
+            <div class="md-card-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <h5 style="margin: 0; font-size: 14px; font-weight: 500; color: var(--md-on-surface-variant);">Overall Progress</h5>
+                    <i class="fas fa-chart-line" style="font-size: 24px; color: var(--md-success); opacity: 0.7;"></i>
+                </div>
+                <h2 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 400; color: var(--md-success);">${data.totals.overall_progress}%</h2>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${data.totals.overall_progress}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="md-card">
+            <div class="md-card-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <h5 style="margin: 0; font-size: 14px; font-weight: 500; color: var(--md-on-surface-variant);">Total Saved</h5>
+                    <i class="fas fa-piggy-bank" style="font-size: 24px; color: var(--md-secondary); opacity: 0.7;"></i>
+                </div>
+                <h2 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 400;">$${data.totals.current_amount.toLocaleString()}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--md-on-surface-variant);">of $${data.totals.target_amount.toLocaleString()} goal</p>
+            </div>
+        </div>
+
+        <div class="md-card ${data.totals.overdue > 0 ? 'md-card-error' : ''}">
+            <div class="md-card-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <h5 style="margin: 0; font-size: 14px; font-weight: 500; color: var(--md-on-surface-variant);">Overdue</h5>
+                    <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: var(--md-error); opacity: 0.7;"></i>
+                </div>
+                <h2 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 400; color: ${data.totals.overdue > 0 ? 'var(--md-error)' : 'var(--md-on-surface)'};">${data.totals.overdue}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--md-on-surface-variant);">${data.totals.overdue > 0 ? 'Need attention' : 'All on track'}</p>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('summaryCards').innerHTML = summaryHtml;
+}
+
+function renderMilestones(milestones) {
+    const container = document.getElementById('milestonesList');
+
+    if (milestones.length === 0) {
+        container.innerHTML = `
+            <div class="md-card" style="text-align: center; padding: 64px 32px;">
+                <i class="fas fa-flag-checkered" style="font-size: 64px; color: var(--md-on-surface-variant); opacity: 0.3; margin-bottom: 24px;"></i>
+                <h3 style="color: var(--md-on-surface-variant); font-weight: 400;">No milestones found</h3>
+                <p style="color: var(--md-on-surface-variant); margin-bottom: 24px;">Create your first milestone to start tracking your financial goals</p>
+                <button class="md-btn md-btn-filled" onclick="openMilestoneModal()">
+                    <i class="fas fa-plus"></i>
+                    Add Milestone
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const html = milestones.map(milestone => {
+        const categoryIcons = {
+            'saving': 'fa-piggy-bank',
+            'debt': 'fa-credit-card',
+            'investment': 'fa-chart-line'
+        };
+
+        const statusBadge = milestone.completed
+            ? '<span class="md-chip md-chip-success"><i class="fas fa-check"></i> Completed</span>'
+            : milestone.is_overdue
+            ? '<span class="md-chip md-chip-error"><i class="fas fa-exclamation-triangle"></i> Overdue</span>'
+            : milestone.days_remaining !== null
+            ? `<span class="md-chip">${milestone.days_remaining} days left</span>`
+            : '';
+
+        return `
+            <div class="milestone-card ${milestone.completed ? 'completed' : ''} ${milestone.is_overdue ? 'overdue' : ''}">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 500;">${milestone.name}</h3>
+                        ${milestone.description ? `<p style="margin: 0 0 12px 0; color: var(--md-on-surface-variant);">${milestone.description}</p>` : ''}
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span class="category-badge category-${milestone.category}">
+                                <i class="fas ${categoryIcons[milestone.category]}"></i>
+                                ${milestone.category.charAt(0).toUpperCase() + milestone.category.slice(1)}
+                            </span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        ${!milestone.completed ? `
+                            <button class="md-btn md-btn-icon" onclick="openProgressModal(${milestone.id}, '${milestone.name}')" title="Add Progress">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        ` : ''}
+                        <button class="md-btn md-btn-icon" onclick="editMilestone(${milestone.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="md-btn md-btn-icon" onclick="deleteMilestone(${milestone.id}, '${milestone.name}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${milestone.progress_percentage}%;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <span style="font-size: 14px; color: var(--md-on-surface-variant);">
+                        $${milestone.current_amount.toLocaleString()} of $${milestone.target_amount.toLocaleString()}
+                    </span>
+                    <span style="font-size: 16px; font-weight: 500; color: var(--md-primary);">
+                        ${milestone.progress_percentage}%
+                    </span>
+                </div>
+
+                ${milestone.target_date ? `
+                    <div style="margin-top: 12px; font-size: 12px; color: var(--md-on-surface-variant);">
+                        <i class="fas fa-calendar"></i> Target: ${new Date(milestone.target_date).toLocaleDateString()}
+                    </div>
+                ` : ''}
+
+                ${!milestone.completed && milestone.progress_percentage >= 100 ? `
+                    <button class="md-btn md-btn-filled" style="width: 100%; margin-top: 16px;" onclick="completeMilestone(${milestone.id})">
+                        <i class="fas fa-check"></i>
+                        Mark as Completed
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+function filterMilestones(filter) {
+    currentFilter = filter;
+
+    // Update active tab
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+
+    loadMilestones();
+}
+
+function openMilestoneModal(milestoneId = null) {
+    document.getElementById('milestoneModal').style.display = 'flex';
+    document.getElementById('modalTitle').textContent = milestoneId ? 'Edit Milestone' : 'Add New Milestone';
+
+    if (!milestoneId) {
+        document.getElementById('milestoneForm').reset();
+        document.getElementById('milestone_id').value = '';
+    }
+}
+
+function closeMilestoneModal() {
+    document.getElementById('milestoneModal').style.display = 'none';
+}
+
+async function editMilestone(id) {
+    try {
+        const response = await fetch(`/api/milestones/${id}`);
+        const milestone = await response.json();
+
+        document.getElementById('milestone_id').value = milestone.id;
+        document.getElementById('milestone_name').value = milestone.name;
+        document.getElementById('milestone_description').value = milestone.description || '';
+        document.getElementById('target_amount').value = milestone.target_amount;
+        document.getElementById('current_amount').value = milestone.current_amount;
+        document.getElementById('target_date').value = milestone.target_date || '';
+        document.getElementById('category').value = milestone.category;
+
+        openMilestoneModal(milestone.id);
+    } catch (error) {
+        console.error('Error loading milestone:', error);
+        showMaterialSnackbar('Failed to load milestone', 'error');
+    }
+}
+
+async function saveMilestone() {
+    const id = document.getElementById('milestone_id').value;
+    const name = document.getElementById('milestone_name').value;
+    const description = document.getElementById('milestone_description').value;
+    const targetAmount = document.getElementById('target_amount').value;
+    const currentAmount = document.getElementById('current_amount').value;
+    const targetDate = document.getElementById('target_date').value;
+    const category = document.getElementById('category').value;
+
+    const data = {
+        name,
+        description,
+        target_amount: parseFloat(targetAmount),
+        current_amount: parseFloat(currentAmount),
+        target_date: targetDate || null,
+        category
+    };
+
+    try {
+        const url = id ? `/api/milestones/${id}` : '/api/milestones/';
+        const method = id ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(result.message, 'success');
+            closeMilestoneModal();
+            loadMilestones();
+            loadSummary();
+        } else {
+            showMaterialSnackbar(result.error || 'Failed to save milestone', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving milestone:', error);
+        showMaterialSnackbar('Failed to save milestone', 'error');
+    }
+}
+
+async function deleteMilestone(id, name) {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+        const response = await fetch(`/api/milestones/${id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            loadMilestones();
+            loadSummary();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to delete milestone', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting milestone:', error);
+        showMaterialSnackbar('Failed to delete milestone', 'error');
+    }
+}
+
+function openProgressModal(milestoneId, milestoneName) {
+    document.getElementById('progress_milestone_id').value = milestoneId;
+    document.getElementById('progress_milestone_name').textContent = `Add progress to: ${milestoneName}`;
+    document.getElementById('progress_amount').value = '';
+    document.getElementById('progressModal').style.display = 'flex';
+}
+
+function closeProgressModal() {
+    document.getElementById('progressModal').style.display = 'none';
+}
+
+async function addProgress() {
+    const milestoneId = document.getElementById('progress_milestone_id').value;
+    const amount = document.getElementById('progress_amount').value;
+
+    if (!amount || parseFloat(amount) <= 0) {
+        showMaterialSnackbar('Please enter a valid amount', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/milestones/${milestoneId}/add-progress`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: parseFloat(amount)
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            closeProgressModal();
+            loadMilestones();
+            loadSummary();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to add progress', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding progress:', error);
+        showMaterialSnackbar('Failed to add progress', 'error');
+    }
+}
+
+async function completeMilestone(id) {
+    try {
+        const response = await fetch(`/api/milestones/${id}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                set_target_amount: true
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            loadMilestones();
+            loadSummary();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to complete milestone', 'error');
+        }
+    } catch (error) {
+        console.error('Error completing milestone:', error);
+        showMaterialSnackbar('Failed to complete milestone', 'error');
+    }
+}
+
+function showMaterialSnackbar(message, type = 'info') {
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+
+    const colors = {
+        'success': 'var(--md-success)',
+        'error': 'var(--md-error)',
+        'warning': 'var(--md-warning)',
+        'info': 'var(--md-info)'
+    };
+    snackbar.style.backgroundColor = colors[type] || colors.info;
+
+    snackbar.innerHTML = `
+        <span>${message}</span>
+        <button class="md-btn md-btn-text" style="color: white; padding: 8px 16px;" onclick="this.parentElement.remove()">
+            Dismiss
+        </button>
+    `;
+
+    document.body.appendChild(snackbar);
+
+    setTimeout(() => {
+        snackbar.style.opacity = '0';
+        setTimeout(() => snackbar.parentNode && snackbar.remove(), 300);
+    }, 5000);
+}
+</script>
+{% endblock %}

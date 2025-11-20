@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}YNAB Principles - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <!-- Page Header -->
+    <div style="margin-bottom: 32px;">
+        <h1 style="font-size: 32px; font-weight: 400; margin: 0 0 8px 0; color: var(--md-on-surface);">
+            <i class="fas fa-lightbulb" style="color: var(--md-primary); margin-right: 12px;"></i>
+            Understanding YNAB Principles
+        </h1>
+        <p style="color: var(--md-on-surface-variant); font-size: 16px; margin: 0;">
+            Learn how the Four Rules of YNAB can transform your financial life
+        </p>
+    </div>
+
+    <!-- What is YNAB Section -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-body">
+            <h2 style="font-size: 24px; font-weight: 500; margin: 0 0 16px 0; color: var(--md-primary);">
+                What is YNAB?
+            </h2>
+            <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface); margin: 0 0 16px 0;">
+                <strong>YNAB</strong> stands for "You Need A Budget" - a proven budgeting methodology that helps you
+                gain total control of your money. Unlike traditional budgeting that looks backward at what you spent,
+                YNAB is proactive and helps you decide what to do with every dollar before you spend it.
+            </p>
+            <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface); margin: 0;">
+                This Personal Finance Tracker implements the core YNAB principles to help you break the paycheck-to-paycheck
+                cycle, pay off debt, and save more money than you ever thought possible.
+            </p>
+        </div>
+    </div>
+
+    <!-- The Four Rules -->
+    <h2 style="font-size: 28px; font-weight: 500; margin: 0 0 24px 0; color: var(--md-on-surface);">
+        The Four Rules of YNAB
+    </h2>
+
+    <!-- Rule 1 -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-body">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, var(--md-primary), var(--md-primary-dark)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                    1
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 20px; font-weight: 500; margin: 0 0 12px 0; color: var(--md-on-surface);">
+                        Give Every Dollar a Job
+                    </h3>
+                    <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface-variant); margin: 0 0 16px 0;">
+                        When you get paid, assign every single dollar to a specific category before you spend anything.
+                        Whether it's rent, groceries, savings, or fun money - give every dollar a purpose.
+                    </p>
+                    <div style="background: var(--md-surface-container); padding: 16px; border-radius: var(--md-radius-md); border-left: 4px solid var(--md-primary);">
+                        <strong style="color: var(--md-primary);">How to apply this:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: var(--md-on-surface);">
+                            <li>Go to the Budget page</li>
+                            <li>Allocate your available money to categories</li>
+                            <li>Keep allocating until "Ready to Assign" reaches $0.00</li>
+                            <li>Use Budget Templates to save time month-to-month</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule 2 -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-body">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, var(--md-secondary), var(--md-secondary-dark)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                    2
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 20px; font-weight: 500; margin: 0 0 12px 0; color: var(--md-on-surface);">
+                        Embrace Your True Expenses
+                    </h3>
+                    <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface-variant); margin: 0 0 16px 0;">
+                        Break large, infrequent expenses into smaller monthly amounts. Car insurance due every six months?
+                        Divide by six and set aside money each month. This way, when the bill comes, the money is already there.
+                    </p>
+                    <div style="background: var(--md-surface-container); padding: 16px; border-radius: var(--md-radius-md); border-left: 4px solid var(--md-secondary);">
+                        <strong style="color: var(--md-secondary);">How to apply this:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: var(--md-on-surface);">
+                            <li>Create budget categories for irregular expenses (insurance, car maintenance, gifts, etc.)</li>
+                            <li>Calculate the yearly cost and divide by 12</li>
+                            <li>Allocate that amount every month</li>
+                            <li>Watch your category balances grow until needed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule 3 -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-body">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, var(--md-warning), #F57C00); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                    3
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 20px; font-weight: 500; margin: 0 0 12px 0; color: var(--md-on-surface);">
+                        Roll With the Punches
+                    </h3>
+                    <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface-variant); margin: 0 0 16px 0;">
+                        Life happens. You'll overspend in some categories, and that's okay. When you do, just move money
+                        from another category to cover it. Your budget is flexible - adapt it to reality as you go.
+                    </p>
+                    <div style="background: var(--md-surface-container); padding: 16px; border-radius: var(--md-radius-md); border-left: 4px solid var(--md-warning);">
+                        <strong style="color: var(--md-warning);">How to apply this:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: var(--md-on-surface);">
+                            <li>When overspending happens, don't panic</li>
+                            <li>Use the Budget Transfer feature to move money between categories</li>
+                            <li>Decide what's less important right now</li>
+                            <li>Adjust your budget to match reality</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule 4 -->
+    <div class="md-card" style="margin-bottom: 24px;">
+        <div class="md-card-body">
+            <div style="display: flex; align-items: flex-start; gap: 16px;">
+                <div style="min-width: 48px; height: 48px; background: linear-gradient(135deg, var(--md-success), #2E7D32); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 700;">
+                    4
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 20px; font-weight: 500; margin: 0 0 12px 0; color: var(--md-on-surface);">
+                        Age Your Money
+                    </h3>
+                    <p style="font-size: 16px; line-height: 1.8; color: var(--md-on-surface-variant); margin: 0 0 16px 0;">
+                        Stop living paycheck to paycheck. The goal is to use money you earned at least 30 days ago.
+                        This buffer gives you flexibility, reduces stress, and helps you make better financial decisions.
+                    </p>
+                    <div style="background: var(--md-surface-container); padding: 16px; border-radius: var(--md-radius-md); border-left: 4px solid var(--md-success);">
+                        <strong style="color: var(--md-success);">How to apply this:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px; color: var(--md-on-surface);">
+                            <li>Start small - try to get 3 days ahead, then a week</li>
+                            <li>Use Milestones to track your "buffer fund" goal</li>
+                            <li>Eventually work toward using last month's income for this month's expenses</li>
+                            <li>Monitor your progress on the Dashboard</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <h2 style="font-size: 28px; font-weight: 500; margin: 48px 0 24px 0; color: var(--md-on-surface);">
+        Frequently Asked Questions
+    </h2>
+
+    <!-- FAQ Items -->
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                How is this different from traditional budgeting?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                Traditional budgets forecast what you think you'll spend. YNAB is about allocating money you actually
+                have right now. It's proactive, not predictive. You make decisions with real money, not imaginary future income.
+            </p>
+        </div>
+    </div>
+
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                What if I have irregular income?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                YNAB works great with irregular income! When you get paid, allocate money to your most important
+                categories first (rent, food, utilities). As more money comes in, continue allocating by priority.
+                The key is only budgeting money you actually have.
+            </p>
+        </div>
+    </div>
+
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                How do I handle credit card spending?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                When you make a purchase with a credit card, record it as a transaction in the appropriate category.
+                The money is immediately "spent" from that category's budget, even though you haven't paid the card yet.
+                This ensures you always have the money to pay off your credit card in full.
+            </p>
+        </div>
+    </div>
+
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                Should I budget money for savings?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                Absolutely! Savings goals are just categories in your budget. Create categories like "Emergency Fund,"
+                "Vacation," or "New Car." Use the Milestones feature to track progress toward these goals. Treat
+                savings like any other expense - because it is an expense to your future self!
+            </p>
+        </div>
+    </div>
+
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                How do I use Budget Templates?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                Once you've set up your budget categories and allocations, save it as a template. At the start of each
+                new month, load your template to quickly allocate money the same way. You can have multiple templates
+                for different situations (regular month, holiday month, etc.).
+            </p>
+        </div>
+    </div>
+
+    <div class="md-card" style="margin-bottom: 16px;">
+        <div class="md-card-body">
+            <h4 style="font-size: 18px; font-weight: 500; margin: 0 0 8px 0; color: var(--md-primary);">
+                <i class="fas fa-question-circle" style="margin-right: 8px;"></i>
+                What's the purpose of Account Reconciliation?
+            </h4>
+            <p style="font-size: 15px; line-height: 1.7; color: var(--md-on-surface-variant); margin: 0;">
+                Reconciliation helps you verify that your budget matches reality. Compare your bank statement with
+                your tracked transactions to catch errors, duplicate entries, or forgotten transactions. Regular
+                reconciliation (weekly or monthly) keeps your budget accurate.
+            </p>
+        </div>
+    </div>
+
+    <!-- Getting Started Section -->
+    <div class="md-card" style="margin: 48px 0 24px 0; background: linear-gradient(135deg, var(--md-primary-light), var(--md-primary));">
+        <div class="md-card-body">
+            <h3 style="font-size: 24px; font-weight: 500; margin: 0 0 16px 0; color: white;">
+                <i class="fas fa-rocket" style="margin-right: 12px;"></i>
+                Ready to Get Started?
+            </h3>
+            <p style="font-size: 16px; line-height: 1.8; color: white; opacity: 0.95; margin: 0 0 24px 0;">
+                The best way to learn YNAB is by doing. Start with these simple steps:
+            </p>
+            <ol style="font-size: 16px; line-height: 2; color: white; margin: 0 0 24px 0; padding-left: 20px;">
+                <li>Add your current account balances on the Dashboard</li>
+                <li>Create budget categories that make sense for your life</li>
+                <li>Allocate all available money to categories (Rule 1)</li>
+                <li>Record transactions as they happen</li>
+                <li>Adjust your budget when needed (Rule 3)</li>
+            </ol>
+            <a href="{{ url_for('main.dashboard') }}" class="md-btn md-btn-filled" style="background: white; color: var(--md-primary);">
+                <i class="fas fa-arrow-right"></i>
+                Go to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

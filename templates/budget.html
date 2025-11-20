@@ -3,236 +3,352 @@
 {% block title %}Budget - Personal Finance Tracker{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-calculator me-2"></i>Budget Management</h2>
-    <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#categoryModal">
-            <i class="fas fa-plus me-2"></i>Add Category
+
+<!-- Page Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 32px 0 24px 0;">
+    <div>
+        <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-calculator"></i>
+            Budget Management
+        </h1>
+        <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Exchange Rate: 1 USD = {{ "%.2f"|format(exchange_rate) }} KES</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <button class="md-btn md-btn-text" onclick="openTemplatesModal()" title="Load or manage budget templates">
+            <i class="fas fa-folder-open"></i>
+            Templates
         </button>
-        <small class="text-muted">Exchange Rate: 1 USD = {{ "%.2f"|format(exchange_rate) }} KES</small>
+        <button class="md-btn md-btn-outlined" onclick="openSaveTemplateModal()" title="Save current budget as template">
+            <i class="fas fa-save"></i>
+            Save Template
+        </button>
+        <button class="md-btn md-btn-outlined" onclick="openTransferModal()">
+            <i class="fas fa-exchange-alt"></i>
+            Transfer Budget
+        </button>
+        <button class="md-btn md-btn-filled" onclick="openCategoryModal()">
+            <i class="fas fa-plus"></i>
+            Add Category
+        </button>
     </div>
 </div>
 
 <!-- YNAB Principles Banner -->
-<div class="alert alert-info mb-4">
-    <h6><i class="fas fa-lightbulb me-2"></i>YNAB Principles</h6>
-    <div class="row">
-        <div class="col-md-3">
-            <small><strong>1. Give Every Shilling a Job</strong><br>Allocate all income to categories</small>
-        </div>
-        <div class="col-md-3">
-            <small><strong>2. Embrace True Expenses</strong><br>Budget for irregular costs</small>
-        </div>
-        <div class="col-md-3">
-            <small><strong>3. Roll with the Punches</strong><br>Reallocate when overspending</small>
-        </div>
-        <div class="col-md-3">
-            <small><strong>4. Live on Last Month's Income</strong><br>Build a buffer</small>
+<div class="md-card" style="background: linear-gradient(135deg, var(--md-info) 0%, var(--md-primary) 100%); color: white; margin-bottom: 24px;">
+    <div class="md-card-body">
+        <h5 style="margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-lightbulb"></i>
+            YNAB Principles
+        </h5>
+        <div class="md-grid md-grid-cols-4">
+            <div>
+                <strong style="display: block; margin-bottom: 4px;">1. Give Every Shilling a Job</strong>
+                <small style="opacity: 0.9;">Allocate all income to categories</small>
+            </div>
+            <div>
+                <strong style="display: block; margin-bottom: 4px;">2. Embrace True Expenses</strong>
+                <small style="opacity: 0.9;">Budget for irregular costs</small>
+            </div>
+            <div>
+                <strong style="display: block; margin-bottom: 4px;">3. Roll with the Punches</strong>
+                <small style="opacity: 0.9;">Reallocate when overspending</small>
+            </div>
+            <div>
+                <strong style="display: block; margin-bottom: 4px;">4. Live on Last Month's Income</strong>
+                <small style="opacity: 0.9;">Build a buffer</small>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Budget Summary -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6 class="text-muted">Total Income</h6>
-                <div class="h4 text-success">{{ format_currency(income_total) }}</div>
-                <small class="text-muted">Monthly income</small>
-            </div>
+<div class="md-grid md-grid-cols-3" style="margin-bottom: 24px;">
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-success) 0%, #2E7D32 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Income</h6>
+            <div style="font-size: 32px; font-weight: 400; margin-bottom: 4px;">{{ format_currency(income_total) }}</div>
+            <small style="opacity: 0.8;">Monthly income</small>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6 class="text-muted">Total Expenses</h6>
-                <div class="h4 text-danger">{{ format_currency(expense_total) }}</div>
-                <small class="text-muted">Monthly expenses</small>
-            </div>
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-error) 0%, #C62828 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Expenses</h6>
+            <div style="font-size: 32px; font-weight: 400; margin-bottom: 4px;">{{ format_currency(expense_total) }}</div>
+            <small style="opacity: 0.8;">Monthly expenses</small>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <h6 class="text-muted">Available</h6>
-                <div class="h4">{{ format_currency(income_total - expense_total) }}</div>
-                <small class="text-muted">Remaining budget</small>
-            </div>
+    <div class="md-card md-card-elevated">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; color: var(--md-on-surface-variant); font-weight: 400;">Available</h6>
+            <div style="font-size: 32px; font-weight: 500; margin-bottom: 4px; color: {% if income_total - expense_total >= 0 %}var(--md-success){% else %}var(--md-error){% endif %};">{{ format_currency(income_total - expense_total) }}</div>
+            <small style="color: var(--md-on-surface-variant);">Remaining budget</small>
         </div>
     </div>
 </div>
 
 <!-- Budget Categories -->
-<div class="row">
-    <!-- Income Categories -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Income Sources</h5>
-            </div>
-            <div class="card-body">
-                {% set income_categories = categories|selectattr('category_type', 'equalto', 'income')|list %}
-                {% if income_categories %}
-                    <div class="row">
-                        {% for category in income_categories %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">{{ category.name }}</h6>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-success">{{ format_currency(category.allocated_amount) }}</span>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary btn-sm" onclick="editCategory({{ category.id }})" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory({{ category.id }})" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">No income categories defined yet.</p>
-                {% endif %}
-            </div>
-        </div>
+<!-- Income Categories -->
+<div class="md-card" style="margin-bottom: 24px;">
+    <div class="md-card-header" style="background: linear-gradient(135deg, var(--md-success) 0%, #2E7D32 100%); color: white; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-plus-circle"></i>
+        <h5 class="md-card-title" style="color: white;">Income Sources</h5>
     </div>
-
-    <!-- Expense Categories -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="fas fa-minus-circle me-2"></i>Expense Categories</h5>
-            </div>
-            <div class="card-body">
-                {% set expense_categories = categories|selectattr('category_type', 'equalto', 'expense')|list %}
-                {% if expense_categories %}
-                    <div class="row">
-                        {% for category in expense_categories %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0">{{ category.name }}</h6>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-danger">{{ format_currency(category.allocated_amount) }}</span>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary btn-sm" onclick="editCategory({{ category.id }})" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory({{ category.id }})" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="progress mb-2" style="height: 6px">
-                                        {% set spent_amount = category.allocated_amount - category.available_amount %}
-                                        {% set progress = (spent_amount / category.allocated_amount * 100) if category.allocated_amount > 0 else 0 %}
-                                        <div class="progress-bar bg-danger" style="width: {{ [progress, 100]|min }}%"></div>
-                                    </div>
-                                    <small class="text-muted">
-                                        Spent: {{ format_currency(spent_amount) }} / Available: {{ format_currency(category.available_amount) }}
-                                    </small>
-                                </div>
+    <div class="md-card-body">
+        {% set income_categories = categories|selectattr('category_type', 'equalto', 'income')|list %}
+        {% if income_categories %}
+            <div class="md-grid md-grid-cols-2">
+                {% for category in income_categories %}
+                <div class="md-card md-card-elevated">
+                    <div class="md-card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h6 style="margin: 0; font-weight: 500;">{{ category.name }}</h6>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="md-chip md-chip-success">{{ format_currency(category.allocated_amount) }}</span>
+                                <button class="md-btn-icon" onclick="editCategory({{ category.id }})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="md-btn-icon" onclick="deleteCategory({{ category.id }})" title="Delete" style="color: var(--md-error);">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                {% else %}
-                    <p class="text-muted">No expense categories defined yet.</p>
-                {% endif %}
+                </div>
+                {% endfor %}
             </div>
-        </div>
+        {% else %}
+            <p style="color: var(--md-on-surface-variant); text-align: center; padding: 32px 0;">No income categories defined yet.</p>
+        {% endif %}
     </div>
+</div>
 
-    <!-- Savings Categories -->
-    <div class="col-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-piggy-bank me-2"></i>Savings Goals</h5>
-            </div>
-            <div class="card-body">
-                {% set saving_categories = categories|selectattr('category_type', 'equalto', 'saving')|list %}
-                {% if saving_categories %}
-                    <div class="row">
-                        {% for category in saving_categories %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">{{ category.name }}</h6>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-primary">{{ format_currency(category.allocated_amount) }}</span>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary btn-sm" onclick="editCategory({{ category.id }})" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory({{ category.id }})" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+<!-- Expense Categories -->
+<div class="md-card" style="margin-bottom: 24px;">
+    <div class="md-card-header" style="background: linear-gradient(135deg, var(--md-error) 0%, #C62828 100%); color: white; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-minus-circle"></i>
+        <h5 class="md-card-title" style="color: white;">Expense Categories</h5>
+    </div>
+    <div class="md-card-body">
+        {% set expense_categories = categories|selectattr('category_type', 'equalto', 'expense')|list %}
+        {% if expense_categories %}
+            <div class="md-grid md-grid-cols-2">
+                {% for category in expense_categories %}
+                <div class="md-card md-card-elevated">
+                    <div class="md-card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h6 style="margin: 0; font-weight: 500;">{{ category.name }}</h6>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="md-chip md-chip-error">{{ format_currency(category.allocated_amount) }}</span>
+                                <button class="md-btn-icon" onclick="editCategory({{ category.id }})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="md-btn-icon" onclick="deleteCategory({{ category.id }})" title="Delete" style="color: var(--md-error);">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                        {% endfor %}
+                        <!-- Material Progress Bar -->
+                        <div class="md-progress-linear" style="margin-bottom: 8px;">
+                            {% set spent_amount = category.allocated_amount - category.available_amount %}
+                            {% set progress = (spent_amount / category.allocated_amount * 100) if category.allocated_amount > 0 else 0 %}
+                            <div class="md-progress-bar" style="width: {{ [progress, 100]|min }}%; background-color: {% if progress >= 90 %}var(--md-error){% elif progress >= 70 %}var(--md-warning){% else %}var(--md-primary){% endif %};"></div>
+                        </div>
+                        <small style="color: var(--md-on-surface-variant);">
+                            Spent: {{ format_currency(spent_amount) }} / Available: {{ format_currency(category.available_amount) }}
+                        </small>
                     </div>
-                {% else %}
-                    <p class="text-muted">No savings goals defined yet.</p>
-                {% endif %}
+                </div>
+                {% endfor %}
             </div>
+        {% else %}
+            <p style="color: var(--md-on-surface-variant); text-align: center; padding: 32px 0;">No expense categories defined yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Savings Categories -->
+<div class="md-card" style="margin-bottom: 24px;">
+    <div class="md-card-header" style="background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-primary-dark) 100%); color: white; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-piggy-bank"></i>
+        <h5 class="md-card-title" style="color: white;">Savings Goals</h5>
+    </div>
+    <div class="md-card-body">
+        {% set saving_categories = categories|selectattr('category_type', 'equalto', 'saving')|list %}
+        {% if saving_categories %}
+            <div class="md-grid md-grid-cols-2">
+                {% for category in saving_categories %}
+                <div class="md-card md-card-elevated">
+                    <div class="md-card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h6 style="margin: 0; font-weight: 500;">{{ category.name }}</h6>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="md-chip md-chip-primary">{{ format_currency(category.allocated_amount) }}</span>
+                                <button class="md-btn-icon" onclick="editCategory({{ category.id }})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="md-btn-icon" onclick="deleteCategory({{ category.id }})" title="Delete" style="color: var(--md-error);">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--md-on-surface-variant); text-align: center; padding: 32px 0;">No savings goals defined yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Material Design Modal Overlay -->
+<div id="categoryModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title" id="modalTitle">Add Budget Category</h5>
+        </div>
+        <div class="md-card-body">
+            <form id="categoryForm">
+                <!-- Category Name -->
+                <div class="md-text-field">
+                    <input type="text" name="name" id="categoryName" placeholder=" " required>
+                    <label for="categoryName">Category Name</label>
+                </div>
+
+                <!-- Category Type -->
+                <div class="md-text-field">
+                    <select name="category_type" id="categoryType" required>
+                        <option value="">Select type...</option>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                        <option value="saving">Savings Goal</option>
+                    </select>
+                    <label for="categoryType">Category Type</label>
+                </div>
+
+                <!-- Allocated Amount -->
+                <div class="md-text-field">
+                    <input type="number" name="allocated_amount" id="allocatedAmount" step="0.01" min="0" placeholder=" " required>
+                    <label for="allocatedAmount">Allocated Amount ($)</label>
+                </div>
+
+                <!-- Color -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 8px;">Category Color</label>
+                    <input type="color" name="color" id="categoryColor" value="#1E88E5" style="width: 100%; height: 48px; border-radius: var(--md-radius-sm); border: 1px solid var(--md-on-surface-variant); cursor: pointer;">
+                </div>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeCategoryModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitCategory()">Save Category</button>
         </div>
     </div>
 </div>
 
-<!-- Category Modal -->
-<div class="modal fade" id="categoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Budget Category</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Budget Transfer Modal -->
+<div id="transferModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Transfer Budget Between Categories</h5>
+        </div>
+        <div class="md-card-body">
+            <p style="color: var(--md-on-surface-variant); margin-bottom: 24px; font-size: 14px;">
+                Move budget allocation from one category to another. This is useful when you need to reallocate funds (YNAB Principle #3: Roll with the Punches).
+            </p>
+
+            <form id="transferForm">
+                <!-- From Category -->
+                <div class="md-text-field">
+                    <select id="fromCategory" required>
+                        <option value="">Select source category...</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" data-available="{{ category.available_amount }}">
+                            {{ category.name }} - Available: {{ format_currency(category.available_amount) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label for="fromCategory">From Category</label>
+                </div>
+
+                <!-- Transfer Amount -->
+                <div class="md-text-field">
+                    <input type="number" id="transferAmount" step="0.01" min="0.01" placeholder=" " required>
+                    <label for="transferAmount">Transfer Amount ($)</label>
+                </div>
+                <p id="availableAmount" style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: -12px; margin-bottom: 16px;">
+                    Select a category to see available amount
+                </p>
+
+                <!-- To Category -->
+                <div class="md-text-field">
+                    <select id="toCategory" required>
+                        <option value="">Select destination category...</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label for="toCategory">To Category</label>
+                </div>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeTransferModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitTransfer()">Transfer Budget</button>
+        </div>
+    </div>
+</div>
+
+<!-- Save Template Modal -->
+<div id="saveTemplateModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Save Budget as Template</h5>
+        </div>
+        <div class="md-card-body">
+            <p style="color: var(--md-on-surface-variant); margin-bottom: 24px; font-size: 14px;">
+                Save your current budget allocation as a reusable template. This will save all your categories and their allocated amounts.
+            </p>
+
+            <form id="saveTemplateForm">
+                <div class="md-text-field">
+                    <input type="text" id="templateName" placeholder=" " required>
+                    <label for="templateName">Template Name</label>
+                </div>
+
+                <div class="md-text-field">
+                    <textarea id="templateDescription" placeholder=" " rows="3"></textarea>
+                    <label for="templateDescription">Description (Optional)</label>
+                </div>
+
+                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-top: 16px;">
+                    <input type="checkbox" id="setAsDefault" style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="font-size: 14px; color: var(--md-on-surface);">Set as default template</span>
+                </label>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeSaveTemplateModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="submitSaveTemplate()">Save Template</button>
+        </div>
+    </div>
+</div>
+
+<!-- Templates List Modal -->
+<div id="templatesModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 700px; max-width: 90%; max-height: 90vh; overflow-y: auto; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Budget Templates</h5>
+        </div>
+        <div class="md-card-body">
+            <div id="templatesList">
+                <!-- Will be populated by JavaScript -->
             </div>
-            <div class="modal-body">
-                <form id="categoryForm">
-                    <div class="mb-3">
-                        <label class="form-label">Category Name</label>
-                        <input type="text" class="form-control" name="name" placeholder="e.g., Groceries" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Category Type</label>
-                        <select class="form-select" name="category_type" required>
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                            <option value="saving">Savings Goal</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Allocated Amount</label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" name="allocated_amount" step="0.01" min="0" placeholder="0.00" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Color</label>
-                        <input type="color" class="form-control form-control-color" name="color" value="#007bff">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitCategory()">Save Category</button>
-            </div>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeTemplatesModal()">Close</button>
         </div>
     </div>
 </div>
@@ -243,16 +359,38 @@
 <script>
 let editingCategoryId = null;
 
-// Reset modal when shown
-document.getElementById('categoryModal').addEventListener('show.bs.modal', function() {
+// Open modal function
+function openCategoryModal() {
     editingCategoryId = null;
-    document.querySelector('.modal-title').textContent = 'Add Budget Category';
+    document.getElementById('modalTitle').textContent = 'Add Budget Category';
     document.getElementById('categoryForm').reset();
-    document.querySelector('[name="color"]').value = '#007bff';
+    document.getElementById('categoryColor').value = '#1E88E5';
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+// Close modal function
+function closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+    document.getElementById('categoryForm').reset();
+    editingCategoryId = null;
+}
+
+// Close modal when clicking outside
+document.getElementById('categoryModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCategoryModal();
+    }
 });
 
 async function submitCategory() {
     const form = document.getElementById('categoryForm');
+
+    // Validate form
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in all required fields', 'error');
+        return;
+    }
+
     const formData = new FormData(form);
 
     const categoryData = {
@@ -280,21 +418,21 @@ async function submitCategory() {
 
         if (response.ok) {
             // Close modal
-            document.querySelector('#categoryModal .btn-close').click();
+            closeCategoryModal();
 
             // Show success message
-            showNotification(result.message || 'Category saved successfully!', 'success');
+            showMaterialSnackbar(result.message || 'Category saved successfully!', 'success');
 
             // Reload page to show updated data
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showNotification(result.error || 'Failed to save category', 'danger');
+            showMaterialSnackbar(result.error || 'Failed to save category', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
@@ -309,25 +447,25 @@ async function editCategory(id) {
                 editingCategoryId = id;
 
                 // Populate form
-                document.querySelector('[name="name"]').value = category.name;
-                document.querySelector('[name="category_type"]').value = category.category_type;
-                document.querySelector('[name="allocated_amount"]').value = category.allocated_amount;
-                document.querySelector('[name="color"]').value = category.color;
+                document.getElementById('categoryName').value = category.name;
+                document.getElementById('categoryType').value = category.category_type;
+                document.getElementById('allocatedAmount').value = category.allocated_amount;
+                document.getElementById('categoryColor').value = category.color;
 
                 // Update modal title
-                document.querySelector('.modal-title').textContent = 'Edit Budget Category';
+                document.getElementById('modalTitle').textContent = 'Edit Budget Category';
 
                 // Show modal
-                new bootstrap.Modal(document.getElementById('categoryModal')).show();
+                document.getElementById('categoryModal').style.display = 'flex';
             } else {
-                showNotification('Category not found', 'danger');
+                showMaterialSnackbar('Category not found', 'error');
             }
         } else {
-            showNotification('Failed to load category details', 'danger');
+            showMaterialSnackbar('Failed to load category details', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
@@ -344,40 +482,400 @@ async function deleteCategory(id) {
         const result = await response.json();
 
         if (response.ok) {
-            showNotification(result.message || 'Category deleted successfully!', 'success');
+            showMaterialSnackbar(result.message || 'Category deleted successfully!', 'success');
 
             // Reload page to update display
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showNotification(result.error || 'Failed to delete category', 'danger');
+            showMaterialSnackbar(result.error || 'Failed to delete category', 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Network error. Please try again.', 'danger');
+        showMaterialSnackbar('Network error. Please try again.', 'error');
     }
 }
 
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+function showMaterialSnackbar(message, type = 'info') {
+    // Create Material Design snackbar
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+
+    // Set color based on type
+    const colors = {
+        'success': 'var(--md-success)',
+        'error': 'var(--md-error)',
+        'warning': 'var(--md-warning)',
+        'info': 'var(--md-info)'
+    };
+    snackbar.style.backgroundColor = colors[type] || colors.info;
+
+    snackbar.innerHTML = `
+        <span>${message}</span>
+        <button class="md-btn md-btn-text" style="color: white; padding: 8px 16px;" onclick="this.parentElement.remove()">
+            Dismiss
+        </button>
     `;
 
     // Add to page
-    document.body.appendChild(notification);
+    document.body.appendChild(snackbar);
 
     // Auto-remove after 5 seconds
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
+        snackbar.style.opacity = '0';
+        setTimeout(() => {
+            if (snackbar.parentNode) {
+                snackbar.remove();
+            }
+        }, 300);
     }, 5000);
+}
+
+// Budget Transfer Functions
+function openTransferModal() {
+    document.getElementById('transferForm').reset();
+    document.getElementById('transferModal').style.display = 'flex';
+    document.getElementById('availableAmount').textContent = 'Select a category to see available amount';
+}
+
+function closeTransferModal() {
+    document.getElementById('transferModal').style.display = 'none';
+    document.getElementById('transferForm').reset();
+}
+
+// Close modal when clicking outside
+document.getElementById('transferModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTransferModal();
+    }
+});
+
+// Update available amount when from category changes
+document.getElementById('fromCategory').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const available = selected.getAttribute('data-available');
+
+    if (available) {
+        document.getElementById('availableAmount').textContent = `Available to transfer: $${parseFloat(available).toFixed(2)}`;
+        document.getElementById('availableAmount').style.color = parseFloat(available) > 0 ? 'var(--md-success)' : 'var(--md-error)';
+    } else {
+        document.getElementById('availableAmount').textContent = 'Select a category to see available amount';
+        document.getElementById('availableAmount').style.color = 'var(--md-on-surface-variant)';
+    }
+});
+
+async function submitTransfer() {
+    const form = document.getElementById('transferForm');
+
+    // Validate form
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const fromCategoryId = document.getElementById('fromCategory').value;
+    const toCategoryId = document.getElementById('toCategory').value;
+    const amount = parseFloat(document.getElementById('transferAmount').value);
+
+    // Validate same category
+    if (fromCategoryId === toCategoryId) {
+        showMaterialSnackbar('Cannot transfer to the same category', 'error');
+        return;
+    }
+
+    // Validate available amount
+    const fromCategory = document.getElementById('fromCategory').options[document.getElementById('fromCategory').selectedIndex];
+    const available = parseFloat(fromCategory.getAttribute('data-available'));
+
+    if (amount > available) {
+        showMaterialSnackbar(`Insufficient budget. Available: $${available.toFixed(2)}`, 'error');
+        return;
+    }
+
+    const transferData = {
+        from_category_id: parseInt(fromCategoryId),
+        to_category_id: parseInt(toCategoryId),
+        amount: amount
+    };
+
+    try {
+        const response = await fetch('/api/budget/transfer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(transferData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            closeTransferModal();
+            // Reload page to show updated budgets
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showMaterialSnackbar(data.error || 'Transfer failed', 'error');
+        }
+    } catch (error) {
+        console.error('Error transferring budget:', error);
+        showMaterialSnackbar('An error occurred while transferring budget', 'error');
+    }
+}
+
+// Budget Template Functions
+function openSaveTemplateModal() {
+    document.getElementById('saveTemplateForm').reset();
+    document.getElementById('saveTemplateModal').style.display = 'flex';
+}
+
+function closeSaveTemplateModal() {
+    document.getElementById('saveTemplateModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('saveTemplateModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSaveTemplateModal();
+    }
+});
+
+async function submitSaveTemplate() {
+    const form = document.getElementById('saveTemplateForm');
+
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in the template name', 'error');
+        return;
+    }
+
+    const name = document.getElementById('templateName').value;
+    const description = document.getElementById('templateDescription').value;
+    const isDefault = document.getElementById('setAsDefault').checked;
+
+    const templateData = {
+        name: name,
+        description: description,
+        from_current_budget: true
+    };
+
+    try {
+        const response = await fetch('/api/budget/templates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(templateData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // If set as default, update the template
+            if (isDefault) {
+                await setTemplateAsDefault(data.template.id);
+            }
+
+            showMaterialSnackbar(data.message, 'success');
+            closeSaveTemplateModal();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to save template', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving template:', error);
+        showMaterialSnackbar('An error occurred while saving template', 'error');
+    }
+}
+
+async function setTemplateAsDefault(templateId) {
+    try {
+        await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_default: true })
+        });
+    } catch (error) {
+        console.error('Error setting default template:', error);
+    }
+}
+
+function openTemplatesModal() {
+    document.getElementById('templatesModal').style.display = 'flex';
+    loadTemplates();
+}
+
+function closeTemplatesModal() {
+    document.getElementById('templatesModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('templatesModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTemplatesModal();
+    }
+});
+
+async function loadTemplates() {
+    try {
+        const response = await fetch('/api/budget/templates');
+        const data = await response.json();
+
+        const container = document.getElementById('templatesList');
+
+        if (data.templates.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 48px 24px; color: var(--md-on-surface-variant);">
+                    <i class="fas fa-folder-open" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;"></i>
+                    <p style="margin: 0;">No templates saved yet</p>
+                    <p style="font-size: 14px; margin-top: 8px;">Create a template by clicking "Save Template" in the budget page</p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = data.templates.map(template => `
+            <div class="md-card" style="margin-bottom: 16px;">
+                <div class="md-card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                                ${template.name}
+                                ${template.is_default ? '<span class="md-chip md-chip-primary" style="font-size: 11px; padding: 2px 8px;">Default</span>' : ''}
+                            </h3>
+                            ${template.description ? `<p style="margin: 0 0 12px 0; color: var(--md-on-surface-variant); font-size: 14px;">${template.description}</p>` : ''}
+                            <div style="display: flex; gap: 16px; font-size: 12px; color: var(--md-on-surface-variant);">
+                                <span><i class="fas fa-list"></i> ${template.items_count} categories</span>
+                                <span><i class="fas fa-dollar-sign"></i> $${template.total_allocated.toLocaleString()}</span>
+                                ${template.last_used ? `<span><i class="fas fa-clock"></i> Last used ${new Date(template.last_used).toLocaleDateString()}</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="md-btn md-btn-filled" onclick="applyTemplate(${template.id}, '${template.name}')" title="Load this template">
+                                <i class="fas fa-download"></i>
+                                Load
+                            </button>
+                            ${!template.is_default ? `
+                                <button class="md-btn md-btn-icon" onclick="setAsDefault(${template.id})" title="Set as default">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            ` : ''}
+                            <button class="md-btn md-btn-icon" onclick="deleteTemplate(${template.id}, '${template.name}')" title="Delete">
+                                <i class="fas fa-trash" style="color: var(--md-error);"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading templates:', error);
+        showMaterialSnackbar('Failed to load templates', 'error');
+    }
+}
+
+async function applyTemplate(templateId, templateName) {
+    const clearExisting = confirm(
+        `Apply template "${templateName}"?\n\n` +
+        `Choose:\n` +
+        `• OK = Update existing categories and add new ones\n` +
+        `• Cancel = Keep current categories and add from template\n\n` +
+        `Want to replace ALL categories? Click OK then type "REPLACE" in the next prompt.`
+    );
+
+    let shouldClear = false;
+    if (clearExisting) {
+        const clearConfirm = prompt('Type "REPLACE" to delete all existing categories first (or leave blank to merge):');
+        shouldClear = clearConfirm === 'REPLACE';
+    }
+
+    try {
+        showMaterialSnackbar('Applying template...', 'info');
+
+        const response = await fetch(`/api/budget/templates/${templateId}/apply`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                clear_existing: shouldClear
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(
+                `${data.message}\n` +
+                `Created: ${data.stats.categories_created}, ` +
+                `Updated: ${data.stats.categories_updated}` +
+                `${data.stats.categories_deleted > 0 ? `, Deleted: ${data.stats.categories_deleted}` : ''}`,
+                'success'
+            );
+            closeTemplatesModal();
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to apply template', 'error');
+        }
+    } catch (error) {
+        console.error('Error applying template:', error);
+        showMaterialSnackbar('An error occurred while applying template', 'error');
+    }
+}
+
+async function setAsDefault(templateId) {
+    try {
+        const response = await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_default: true })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar('Default template updated', 'success');
+            loadTemplates(); // Reload to show updated default
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to set default template', 'error');
+        }
+    } catch (error) {
+        console.error('Error setting default template:', error);
+        showMaterialSnackbar('An error occurred', 'error');
+    }
+}
+
+async function deleteTemplate(templateId, templateName) {
+    if (!confirm(`Delete template "${templateName}"? This cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/budget/templates/${templateId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            loadTemplates(); // Reload list
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to delete template', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        showMaterialSnackbar('An error occurred while deleting template', 'error');
+    }
 }
 </script>
 {% endblock %}

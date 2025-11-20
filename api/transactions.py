@@ -1,10 +1,12 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from models import db, Transaction, BudgetCategory
 from utils import login_required_api, parse_currency, format_currency
-from decimal import Decimal
+from logging_config import log_audit_event
+from decimal import Decimal, InvalidOperation
 from datetime import datetime, date
 from sqlalchemy import desc, func
+from sqlalchemy.exc import SQLAlchemyError
 
 transactions_api_bp = Blueprint('transactions_api', __name__)
 
@@ -127,8 +129,9 @@ def create_transaction():
         amount = parse_currency(amount)
         if amount <= 0:
             return jsonify({'error': 'Amount must be positive'}), 400
-    except:
-        return jsonify({'error': 'Invalid amount'}), 400
+    except (ValueError, InvalidOperation, TypeError) as e:
+        current_app.logger.warning(f'Invalid amount provided by user {current_user.username}: {e}')
+        return jsonify({'error': 'Invalid amount format'}), 400
     
     # Validate category if provided
     category = None
@@ -175,9 +178,21 @@ def create_transaction():
         # Update budget category if it's an expense
         if category and transaction_type == 'expense':
             category.available_amount -= amount
-        
+
         db.session.commit()
-        
+
+        # Log audit event for transaction creation
+        log_audit_event(
+            action='CREATE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction.id,
+            new_value=f'{transaction_type}: {amount} {currency} - {description}',
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction created: ID={transaction.id}, User={current_user.username}, Amount={amount}, Type={transaction_type}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction created successfully',
@@ -256,8 +271,9 @@ def update_transaction(transaction_id):
             if amount <= 0:
                 return jsonify({'error': 'Amount must be positive'}), 400
             transaction.amount = amount
-        except:
-            return jsonify({'error': 'Invalid amount'}), 400
+        except (ValueError, InvalidOperation, TypeError) as e:
+            current_app.logger.warning(f'Invalid amount provided by user {current_user.username}: {e}')
+            return jsonify({'error': 'Invalid amount format'}), 400
     
     if 'description' in data:
         description = data['description'].strip()
@@ -320,7 +336,20 @@ def update_transaction(transaction_id):
                 new_category.available_amount -= transaction.amount
         
         db.session.commit()
-        
+
+        # Log audit event for transaction update
+        log_audit_event(
+            action='UPDATE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction.id,
+            old_value=f'{original_type}: {original_amount} - {original_description}',
+            new_value=f'{transaction.transaction_type}: {transaction.amount} {transaction.currency} - {transaction.description}',
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction updated: ID={transaction.id}, User={current_user.username}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction updated successfully',
@@ -332,9 +361,14 @@ def update_transaction(transaction_id):
                 'transaction_date': transaction.transaction_date.isoformat() if transaction.transaction_date else None
             }
         })
-    
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f'Database error updating transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Database error occurred while updating transaction'}), 500
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Unexpected error updating transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to update transaction'}), 500
 
 @transactions_api_bp.route('/<int:transaction_id>', methods=['DELETE'])
@@ -346,23 +380,43 @@ def delete_transaction(transaction_id):
     if not transaction:
         return jsonify({'error': 'Transaction not found'}), 404
     
+    # Store transaction details before deletion for audit log
+    trans_details = f'{transaction.transaction_type}: {transaction.amount} {transaction.currency} - {transaction.description}'
+
     try:
         # Adjust budget category if needed
         if transaction.category_id and transaction.transaction_type == 'expense':
             category = BudgetCategory.query.get(transaction.category_id)
             if category:
                 category.available_amount += transaction.amount
-        
+
         db.session.delete(transaction)
         db.session.commit()
-        
+
+        # Log audit event for transaction deletion
+        log_audit_event(
+            action='DELETE',
+            user_id=current_user.id,
+            username=current_user.username,
+            entity_type='Transaction',
+            entity_id=transaction_id,
+            old_value=trans_details,
+            ip_address=request.remote_addr
+        )
+        current_app.logger.info(f'Transaction deleted: ID={transaction_id}, User={current_user.username}')
+
         return jsonify({
             'success': True,
             'message': 'Transaction deleted successfully'
         })
     
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f'Database error deleting transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Database error occurred while deleting transaction'}), 500
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Unexpected error deleting transaction {transaction_id} for user {current_user.username}: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to delete transaction'}), 500
 
 @transactions_api_bp.route('/summary', methods=['GET'])
@@ -513,3 +567,170 @@ def create_bulk_transactions():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Failed to create transactions'}), 500
+
+@transactions_api_bp.route('/recurring', methods=['GET'])
+@login_required_api
+def get_recurring_transactions():
+    """Get all recurring transactions for the current user"""
+    recurring_transactions = Transaction.query.filter_by(
+        user_id=current_user.id,
+        recurring=True
+    ).order_by(desc(Transaction.created_at)).all()
+
+    result = []
+    for trans in recurring_transactions:
+        result.append({
+            'id': trans.id,
+            'amount': float(trans.amount),
+            'currency': trans.currency,
+            'description': trans.description,
+            'transaction_type': trans.transaction_type,
+            'transaction_date': trans.transaction_date.isoformat() if trans.transaction_date else None,
+            'payee': trans.payee,
+            'account': trans.account,
+            'tags': trans.tags,
+            'recurring_period': trans.recurring_period,
+            'category': {
+                'id': trans.budget_category.id,
+                'name': trans.budget_category.name,
+                'color': trans.budget_category.color
+            } if trans.budget_category else None,
+            'created_at': trans.created_at.isoformat() if trans.created_at else None
+        })
+
+    return jsonify({'recurring_transactions': result})
+
+@transactions_api_bp.route('/recurring/summary', methods=['GET'])
+@login_required_api
+def get_recurring_summary():
+    """Get summary of recurring transactions"""
+    from services.recurring_service import recurring_service
+
+    summary = recurring_service.get_recurring_transaction_summary(current_user.id)
+
+    return jsonify({
+        'total': summary['total'],
+        'by_period': summary['by_period'],
+        'by_type': summary['by_type'],
+        'total_monthly_impact': float(summary['total_monthly_impact'])
+    })
+
+@transactions_api_bp.route('/recurring/upcoming', methods=['GET'])
+@login_required_api
+def get_upcoming_recurring():
+    """Get upcoming recurring transaction occurrences"""
+    days_ahead = request.args.get('days', 30, type=int)
+    days_ahead = min(days_ahead, 365)  # Max 1 year
+
+    from services.recurring_service import recurring_service
+
+    upcoming = recurring_service.get_upcoming_occurrences(current_user.id, days_ahead)
+
+    return jsonify({'upcoming_occurrences': upcoming})
+
+@transactions_api_bp.route('/recurring/process', methods=['POST'])
+@login_required_api
+def process_recurring_transactions():
+    """Process recurring transactions for the current user (create due occurrences)"""
+    dry_run = request.args.get('dry_run', 'false').lower() == 'true'
+
+    from services.recurring_service import recurring_service
+
+    # Get only the user's recurring transactions
+    user_recurring = Transaction.query.filter_by(
+        user_id=current_user.id,
+        recurring=True
+    ).all()
+
+    created_count = 0
+    created_transactions = []
+    errors = []
+
+    try:
+        for template in user_recurring:
+            if recurring_service.should_create_occurrence(
+                template.transaction_date,
+                template.recurring_period
+            ):
+                if not dry_run:
+                    new_trans = recurring_service.create_recurring_occurrence(template)
+                    created_transactions.append({
+                        'id': new_trans.id,
+                        'description': new_trans.description,
+                        'amount': float(new_trans.amount),
+                        'date': new_trans.transaction_date.isoformat()
+                    })
+                    created_count += 1
+                else:
+                    # Dry run - just report what would be created
+                    next_date = recurring_service.get_next_occurrence_date(
+                        template.transaction_date,
+                        template.recurring_period
+                    )
+                    created_transactions.append({
+                        'description': f"{template.description} (Auto-generated)",
+                        'amount': float(template.amount),
+                        'date': next_date.isoformat(),
+                        'template_id': template.id
+                    })
+                    created_count += 1
+
+        if not dry_run:
+            db.session.commit()
+
+            # Log audit event
+            log_audit_event(
+                'recurring_transactions_processed',
+                user_id=current_user.id,
+                details=f'Created {created_count} recurring transaction occurrences'
+            )
+            current_app.logger.info(f'Processed recurring transactions for user {current_user.id}: {created_count} created')
+
+        return jsonify({
+            'success': True,
+            'message': f'{"Would create" if dry_run else "Created"} {created_count} transactions',
+            'created_count': created_count,
+            'created_transactions': created_transactions,
+            'dry_run': dry_run
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error processing recurring transactions: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to process recurring transactions'}), 500
+
+@transactions_api_bp.route('/recurring/<int:transaction_id>/stop', methods=['POST'])
+@login_required_api
+def stop_recurring_transaction(transaction_id):
+    """Stop a recurring transaction (mark as non-recurring)"""
+    transaction = Transaction.query.filter_by(
+        id=transaction_id,
+        user_id=current_user.id,
+        recurring=True
+    ).first()
+
+    if not transaction:
+        return jsonify({'error': 'Recurring transaction not found'}), 404
+
+    try:
+        transaction.recurring = False
+        transaction.recurring_period = None
+
+        db.session.commit()
+
+        # Log audit event
+        log_audit_event(
+            'recurring_transaction_stopped',
+            user_id=current_user.id,
+            details=f'Stopped recurring transaction: {transaction.description}'
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Stopped recurring transaction: {transaction.description}'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error stopping recurring transaction: {str(e)}', exc_info=True)
+        return jsonify({'error': 'Failed to stop recurring transaction'}), 500

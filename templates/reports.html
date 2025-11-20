@@ -3,149 +3,133 @@
 {% block title %}Reports - Personal Finance Tracker{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-chart-line me-2"></i>Financial Reports</h2>
-    <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary" onclick="exportReports()">
-            <i class="fas fa-download me-2"></i>Export
-        </button>
-    </div>
+
+<!-- Page Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 32px 0 24px 0;">
+    <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+        <i class="fas fa-chart-line"></i>
+        Financial Reports
+    </h1>
+    <button class="md-btn md-btn-outlined" onclick="exportReports()">
+        <i class="fas fa-download"></i>
+        Export
+    </button>
 </div>
 
 <!-- Date Range Filter -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Start Date</label>
-                <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+<div class="md-card" style="margin-bottom: 24px;">
+    <div class="md-card-body">
+        <form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: end;">
+            <div class="md-text-field">
+                <input type="date" name="start_date" id="startDate" value="{{ start_date }}" required>
+                <label for="startDate">Start Date</label>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">End Date</label>
-                <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+
+            <div class="md-text-field">
+                <input type="date" name="end_date" id="endDate" value="{{ end_date }}" required>
+                <label for="endDate">End Date</label>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn-primary d-block w-100">Update Report</button>
-            </div>
+
+            <button type="submit" class="md-btn md-btn-filled" style="height: 48px;">
+                Update Report
+            </button>
         </form>
     </div>
 </div>
 
 <!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <h6>Total Income</h6>
-                <h3>{{ format_currency(summary.total_income) }}</h3>
-                <small>{{ date_range }}</small>
-            </div>
+<div class="md-grid md-grid-cols-4" style="margin-bottom: 24px;">
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-success) 0%, #2E7D32 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Income</h6>
+            <div style="font-size: 28px; font-weight: 400; margin-bottom: 4px;">{{ format_currency(summary.total_income) }}</div>
+            <small style="opacity: 0.8;">{{ date_range }}</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <h6>Total Expenses</h6>
-                <h3>{{ format_currency(summary.total_expenses) }}</h3>
-                <small>{{ date_range }}</small>
-            </div>
+
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-error) 0%, #C62828 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Total Expenses</h6>
+            <div style="font-size: 28px; font-weight: 400; margin-bottom: 4px;">{{ format_currency(summary.total_expenses) }}</div>
+            <small style="opacity: 0.8;">{{ date_range }}</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body text-center">
-                <h6>Net Amount</h6>
-                <h3>{{ format_currency(summary.net_amount) }}</h3>
-                <small>{{ date_range }}</small>
-            </div>
+
+    <div class="md-card md-card-elevated">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; color: var(--md-on-surface-variant); font-weight: 400;">Net Amount</h6>
+            <div style="font-size: 28px; font-weight: 500; margin-bottom: 4px; color: {% if summary.net_amount >= 0 %}var(--md-success){% else %}var(--md-error){% endif %};">{{ format_currency(summary.net_amount) }}</div>
+            <small style="color: var(--md-on-surface-variant);">{{ date_range }}</small>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body text-center">
-                <h6>Transaction Count</h6>
-                <h3>{{ summary.transaction_count }}</h3>
-                <small>Total transactions</small>
-            </div>
+
+    <div class="md-card" style="background: linear-gradient(135deg, var(--md-warning) 0%, #F57C00 100%); color: white;">
+        <div class="md-card-body" style="text-align: center;">
+            <h6 style="margin: 0 0 8px 0; opacity: 0.9; font-weight: 400;">Transaction Count</h6>
+            <div style="font-size: 28px; font-weight: 400; margin-bottom: 4px;">{{ summary.transaction_count }}</div>
+            <small style="opacity: 0.8;">Total transactions</small>
         </div>
     </div>
 </div>
 
 <!-- Charts Row -->
-<div class="row mb-4">
+<div class="md-grid md-grid-cols-2" style="margin-bottom: 24px;">
     <!-- Category Spending Chart -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Spending by Category</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="categorySpendingChart" height="300"></canvas>
-            </div>
+    <div class="md-card">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Spending by Category</h5>
+        </div>
+        <div class="md-card-body">
+            <canvas id="categorySpendingChart" height="300"></canvas>
         </div>
     </div>
 
     <!-- Monthly Trend Chart -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Monthly Trend</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="monthlyTrendChart" height="300"></canvas>
-            </div>
+    <div class="md-card">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Monthly Trend</h5>
+        </div>
+        <div class="md-card-body">
+            <canvas id="monthlyTrendChart" height="300"></canvas>
         </div>
     </div>
 </div>
 
-<!-- Category Breakdown Table -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title mb-0">Category Breakdown</h5>
+<!-- Category Breakdown -->
+<div class="md-card">
+    <div class="md-card-header">
+        <h5 class="md-card-title">Category Breakdown</h5>
     </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Category</th>
-                        <th>Amount Spent</th>
-                        <th>Percentage</th>
-                        <th>Trend</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if category_spending %}
-                        {% for category, amount in category_spending.items() %}
-                        {% set percentage = (amount / summary.total_expenses * 100) if summary.total_expenses > 0 else 0 %}
-                        <tr>
-                            <td>{{ category }}</td>
-                            <td class="text-danger">{{ format_currency(amount) }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                        <div class="progress-bar bg-danger" style="width: {{ percentage }}%"></div>
-                                    </div>
-                                    <small>{{ "%.1f"|format(percentage) }}%</small>
-                                </div>
-                            </td>
-                            <td>
-                                <i class="fas fa-minus text-muted"></i>
-                                <small class="text-muted">No trend data</small>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">
-                                No expense data available for the selected period.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+    <div class="md-card-body" style="padding: 0;">
+        {% if category_spending %}
+            <ul class="md-list">
+                {% for category, amount in category_spending.items() %}
+                {% set percentage = (amount / summary.total_expenses * 100) if summary.total_expenses > 0 else 0 %}
+                <li class="md-list-item">
+                    <div class="md-list-item-text" style="flex: 1;">
+                        <div class="md-list-item-primary" style="font-weight: 500;">{{ category }}</div>
+                        <div class="md-list-item-secondary" style="margin-top: 8px;">
+                            <div class="md-progress-linear" style="margin-bottom: 4px;">
+                                <div class="md-progress-bar" style="width: {{ percentage }}%; background-color: var(--md-error);"></div>
+                            </div>
+                            <small>{{ "%.1f"|format(percentage) }}% of total expenses</small>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 18px; font-weight: 500; color: var(--md-error);">
+                            {{ format_currency(amount) }}
+                        </div>
+                    </div>
+                </li>
+                <div class="md-divider" style="margin: 0;"></div>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div style="padding: 48px 24px; text-align: center;">
+                <i class="fas fa-chart-pie" style="font-size: 48px; color: var(--md-on-surface-variant); opacity: 0.3; margin-bottom: 16px;"></i>
+                <p style="color: var(--md-on-surface-variant); margin: 0;">No expense data available for the selected period.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 
@@ -153,6 +137,13 @@
 
 {% block extra_js %}
 <script>
+// Material Design Colors
+const mdChartColors = [
+    '#1E88E5', '#26A69A', '#43A047', '#FB8C00',
+    '#E53935', '#039BE5', '#7E57C2', '#EF5350',
+    '#66BB6A', '#29B6F6'
+];
+
 // Category Spending Chart
 const categoryLabels = {{ category_spending.keys()|list|tojson if category_spending else '[]'|safe }};
 const categoryData = {{ category_spending.values()|list|map('float')|list|tojson if category_spending else '[]'|safe }};
@@ -165,10 +156,8 @@ if (categoryLabels.length > 0) {
             labels: categoryLabels,
             datasets: [{
                 data: categoryData,
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                    '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                ]
+                backgroundColor: mdChartColors,
+                borderWidth: 0
             }]
         },
         options: {
@@ -176,13 +165,18 @@ if (categoryLabels.length > 0) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        font: { family: 'Roboto', size: 12 },
+                        padding: 16,
+                        usePointStyle: true
+                    }
                 }
             }
         }
     });
 } else {
-    document.getElementById('categorySpendingChart').innerHTML = '<p class="text-center text-muted mt-5">No data available</p>';
+    document.getElementById('categorySpendingChart').parentElement.innerHTML = '<p style="text-align: center; color: var(--md-on-surface-variant); padding: 48px 0;">No data available</p>';
 }
 
 // Monthly Trend Chart
@@ -198,23 +192,41 @@ if (monthlyData.length > 0) {
                 {
                     label: 'Income',
                     data: monthlyData.map(d => d.income),
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    tension: 0.1
+                    borderColor: '#43A047',
+                    backgroundColor: 'rgba(67, 160, 71, 0.08)',
+                    tension: 0.4,
+                    borderWidth: 3,
+                    fill: true,
+                    pointBackgroundColor: '#43A047',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
                 },
                 {
                     label: 'Expenses',
                     data: monthlyData.map(d => d.expenses),
-                    borderColor: '#dc3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    tension: 0.1
+                    borderColor: '#E53935',
+                    backgroundColor: 'rgba(229, 57, 53, 0.08)',
+                    tension: 0.4,
+                    borderWidth: 3,
+                    fill: true,
+                    pointBackgroundColor: '#E53935',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
                 },
                 {
                     label: 'Net',
                     data: monthlyData.map(d => d.net),
-                    borderColor: '#17a2b8',
-                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                    tension: 0.1
+                    borderColor: '#1E88E5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.08)',
+                    tension: 0.4,
+                    borderWidth: 3,
+                    fill: true,
+                    pointBackgroundColor: '#1E88E5',
+                    pointBorderColor: '#FFFFFF',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
                 }
             ]
         },
@@ -224,27 +236,53 @@ if (monthlyData.length > 0) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
                     ticks: {
+                        font: { family: 'Roboto' },
                         callback: function(value) {
                             return '$' + value.toLocaleString();
                         }
                     }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Roboto' } }
                 }
             },
             plugins: {
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        font: { family: 'Roboto', size: 12 },
+                        padding: 16,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { family: 'Roboto' },
+                    bodyFont: { family: 'Roboto' },
+                    padding: 12,
+                    cornerRadius: 8
                 }
             }
         }
     });
 } else {
-    document.getElementById('monthlyTrendChart').innerHTML = '<p class="text-center text-muted mt-5">No data available</p>';
+    document.getElementById('monthlyTrendChart').parentElement.innerHTML = '<p style="text-align: center; color: var(--md-on-surface-variant); padding: 48px 0;">No data available</p>';
 }
 
 function exportReports() {
-    alert('Export functionality coming soon!');
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+    snackbar.style.backgroundColor = 'var(--md-info)';
+    snackbar.innerHTML = '<span>Export functionality coming soon!</span><button class="md-btn md-btn-text" style="color: white; padding: 8px 16px;" onclick="this.parentElement.remove()">Dismiss</button>';
+    document.body.appendChild(snackbar);
+    setTimeout(() => {
+        snackbar.style.opacity = '0';
+        setTimeout(() => snackbar.remove(), 300);
+    }, 3000);
 }
 </script>
 {% endblock %}

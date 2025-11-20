@@ -1,10 +1,11 @@
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, current_app, abort
 from flask_login import login_required, current_user
 from models import db, Transaction, BudgetCategory, Milestone, Report
 from utils import login_required_api, get_month_range, get_year_range, format_currency, ensure_directory_exists
 from decimal import Decimal
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, desc, extract
+from werkzeug.security import safe_join
 import json
 import os
 
@@ -547,14 +548,31 @@ def get_saved_reports():
 def download_report(report_id):
     """Download a saved report file"""
     report = Report.query.filter_by(id=report_id, user_id=current_user.id).first()
-    
+
     if not report:
         return jsonify({'error': 'Report not found'}), 404
-    
-    if not report.file_path or not os.path.exists(report.file_path):
+
+    if not report.file_path:
         return jsonify({'error': 'Report file not found'}), 404
-    
+
+    # Sanitize file path to prevent path traversal attacks
+    # Get absolute path to reports directory
+    reports_dir = os.path.abspath(current_app.config.get('REPORTS_FOLDER', 'reports'))
+
+    # Extract just the filename from the stored path
+    filename = os.path.basename(report.file_path)
+
+    # Use safe_join to ensure the path stays within reports directory
+    safe_path = safe_join(reports_dir, filename)
+
+    if not safe_path or not os.path.exists(safe_path):
+        return jsonify({'error': 'Report file not found'}), 404
+
+    # Verify the file is actually within the reports directory
+    if not os.path.abspath(safe_path).startswith(reports_dir):
+        return jsonify({'error': 'Invalid file path'}), 403
+
     try:
-        return send_file(report.file_path, as_attachment=True)
+        return send_file(safe_path, as_attachment=True, download_name=filename)
     except Exception as e:
         return jsonify({'error': f'Download failed: {str(e)}'}), 500

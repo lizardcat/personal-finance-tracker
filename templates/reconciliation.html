@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Account Reconciliation - Personal Finance Tracker{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 32px 0 24px 0;">
+    <div>
+        <h1 style="font-size: 32px; font-weight: 400; margin: 0; color: var(--md-on-surface); display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-check-double"></i>
+            Account Reconciliation
+        </h1>
+        <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Match transactions with bank statements</p>
+    </div>
+    <button class="md-btn md-btn-filled" onclick="openNewReconciliationModal()">
+        <i class="fas fa-plus"></i>
+        New Reconciliation
+    </button>
+</div>
+
+<!-- Reconciliations List -->
+<div id="reconciliationsList">
+    <!-- Will be populated by JavaScript -->
+</div>
+
+<!-- New Reconciliation Modal -->
+<div id="newReconciliationModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">New Account Reconciliation</h5>
+        </div>
+        <div class="md-card-body">
+            <form id="reconciliationForm">
+                <div class="md-text-field">
+                    <select id="reconAccount" required>
+                        <option value="">Select account...</option>
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                        <option value="credit">Credit Card</option>
+                        <option value="cash">Cash</option>
+                    </select>
+                    <label for="reconAccount">Account</label>
+                </div>
+
+                <div class="md-text-field">
+                    <input type="date" id="statementDate" required>
+                    <label for="statementDate">Statement Date</label>
+                </div>
+
+                <div class="md-text-field">
+                    <input type="number" id="statementBalance" step="0.01" placeholder=" " required>
+                    <label for="statementBalance">Statement Balance ($)</label>
+                </div>
+
+                <div class="md-text-field">
+                    <textarea id="reconNotes" placeholder=" " rows="2"></textarea>
+                    <label for="reconNotes">Notes (Optional)</label>
+                </div>
+            </form>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeNewReconciliationModal()">Cancel</button>
+            <button type="button" class="md-btn md-btn-filled" onclick="createReconciliation()">Start Reconciliation</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reconciliation Details Modal -->
+<div id="reconciliationDetailsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="md-card" style="width: 900px; max-width: 95%; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title" id="detailsTitle">Reconciliation Details</h5>
+        </div>
+        <div class="md-card-body">
+            <!-- Summary -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="md-card" style="background: var(--md-primary); color: white;">
+                    <div class="md-card-body" style="text-align: center;">
+                        <small style="opacity: 0.9;">Statement Balance</small>
+                        <h3 id="summaryStatement" style="margin: 8px 0;">$0.00</h3>
+                    </div>
+                </div>
+                <div class="md-card" style="background: var(--md-secondary); color: white;">
+                    <div class="md-card-body" style="text-align: center;">
+                        <small style="opacity: 0.9;">Book Balance</small>
+                        <h3 id="summaryBook" style="margin: 8px 0;">$0.00</h3>
+                    </div>
+                </div>
+                <div class="md-card" id="differencCard">
+                    <div class="md-card-body" style="text-align: center;">
+                        <small style="opacity: 0.9;">Difference</small>
+                        <h3 id="summaryDifference" style="margin: 8px 0;">$0.00</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions List -->
+            <div id="transactionsList">
+                <!-- Will be populated -->
+            </div>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeDetailsModal()">Close</button>
+            <button type="button" id="completeBtn" class="md-btn md-btn-filled" onclick="completeReconciliation()" style="display: none;">
+                <i class="fas fa-check"></i>
+                Complete Reconciliation
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentReconciliationId = null;
+
+// Load reconciliations on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadReconciliations();
+});
+
+async function loadReconciliations() {
+    try {
+        const response = await fetch('/api/reconciliation/');
+        const data = await response.json();
+
+        renderReconciliations(data.reconciliations);
+    } catch (error) {
+        console.error('Error loading reconciliations:', error);
+        showMaterialSnackbar('Failed to load reconciliations', 'error');
+    }
+}
+
+function renderReconciliations(reconciliations) {
+    const container = document.getElementById('reconciliationsList');
+
+    if (reconciliations.length === 0) {
+        container.innerHTML = `
+            <div class="md-card" style="text-align: center; padding: 64px 32px;">
+                <i class="fas fa-check-double" style="font-size: 64px; color: var(--md-on-surface-variant); opacity: 0.3; margin-bottom: 24px;"></i>
+                <h3 style="color: var(--md-on-surface-variant); font-weight: 400;">No reconciliations yet</h3>
+                <p style="color: var(--md-on-surface-variant); margin-bottom: 24px;">Create your first reconciliation to match transactions with bank statements</p>
+                <button class="md-btn md-btn-filled" onclick="openNewReconciliationModal()">
+                    <i class="fas fa-plus"></i>
+                    New Reconciliation
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const html = reconciliations.map(recon => {
+        const statusColor = recon.reconciled ? 'var(--md-success)' :
+                           Math.abs(recon.difference) < 0.01 ? 'var(--md-warning)' : 'var(--md-error)';
+
+        return `
+            <div class="md-card" style="margin-bottom: 16px;">
+                <div class="md-card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 500; text-transform: capitalize;">
+                                ${recon.account} Account
+                                ${recon.reconciled ? '<span class="md-chip md-chip-success" style="margin-left: 8px;"><i class="fas fa-check"></i> Reconciled</span>' : ''}
+                            </h3>
+                            <div style="display: flex; gap: 24px; font-size: 14px; color: var(--md-on-surface-variant); margin-bottom: 12px;">
+                                <span><i class="fas fa-calendar"></i> ${new Date(recon.statement_date).toLocaleDateString()}</span>
+                                <span><i class="fas fa-list"></i> ${recon.cleared_count}/${recon.items_count} cleared</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, auto); gap: 16px; width: fit-content;">
+                                <div><small style="opacity: 0.7;">Statement:</small> <strong>$${recon.statement_balance.toFixed(2)}</strong></div>
+                                <div><small style="opacity: 0.7;">Book:</small> <strong>$${recon.book_balance.toFixed(2)}</strong></div>
+                                <div><small style="opacity: 0.7;">Difference:</small> <strong style="color: ${statusColor};">$${Math.abs(recon.difference).toFixed(2)}</strong></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="md-btn md-btn-filled" onclick="viewReconciliation(${recon.id})" ${recon.reconciled ? 'disabled' : ''}>
+                                <i class="fas fa-${recon.reconciled ? 'eye' : 'edit'}"></i>
+                                ${recon.reconciled ? 'View' : 'Continue'}
+                            </button>
+                            <button class="md-btn md-btn-icon" onclick="deleteReconciliation(${recon.id})" title="Delete">
+                                <i class="fas fa-trash" style="color: var(--md-error);"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+function openNewReconciliationModal() {
+    document.getElementById('reconciliationForm').reset();
+    document.getElementById('newReconciliationModal').style.display = 'flex';
+}
+
+function closeNewReconciliationModal() {
+    document.getElementById('newReconciliationModal').style.display = 'none';
+}
+
+document.getElementById('newReconciliationModal').addEventListener('click', function(e) {
+    if (e.target === this) closeNewReconciliationModal();
+});
+
+async function createReconciliation() {
+    const form = document.getElementById('reconciliationForm');
+    if (!form.checkValidity()) {
+        showMaterialSnackbar('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const data = {
+        account: document.getElementById('reconAccount').value,
+        statement_date: document.getElementById('statementDate').value,
+        statement_balance: parseFloat(document.getElementById('statementBalance').value),
+        notes: document.getElementById('reconNotes').value
+    };
+
+    try {
+        const response = await fetch('/api/reconciliation/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(result.message, 'success');
+            closeNewReconciliationModal();
+            loadReconciliations();
+            viewReconciliation(result.reconciliation.id);
+        } else {
+            showMaterialSnackbar(result.error || 'Failed to create reconciliation', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('An error occurred', 'error');
+    }
+}
+
+async function viewReconciliation(id) {
+    currentReconciliationId = id;
+
+    try {
+        const response = await fetch(`/api/reconciliation/${id}`);
+        const data = await response.json();
+
+        renderReconciliationDetails(data);
+        document.getElementById('reconciliationDetailsModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to load reconciliation', 'error');
+    }
+}
+
+function renderReconciliationDetails(recon) {
+    document.getElementById('detailsTitle').textContent =
+        `${recon.account.charAt(0).toUpperCase() + recon.account.slice(1)} - ${new Date(recon.statement_date).toLocaleDateString()}`;
+
+    document.getElementById('summaryStatement').textContent = `$${recon.statement_balance.toFixed(2)}`;
+    document.getElementById('summaryBook').textContent = `$${recon.book_balance.toFixed(2)}`;
+    document.getElementById('summaryDifference').textContent = `$${Math.abs(recon.difference).toFixed(2)}`;
+
+    const differenceCard = document.getElementById('differenceCard');
+    differenceCard.style.background = Math.abs(recon.difference) < 0.01 ? 'var(--md-success)' : 'var(--md-error)';
+    differenceCard.style.color = 'white';
+
+    const completeBtn = document.getElementById('completeBtn');
+    if (Math.abs(recon.difference) < 0.01 && !recon.reconciled) {
+        completeBtn.style.display = 'inline-flex';
+    } else {
+        completeBtn.style.display = 'none';
+    }
+
+    const html = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--md-surface-container-high);">
+                    <th style="padding: 12px; text-align: left; width: 40px;"></th>
+                    <th style="padding: 12px; text-align: left;">Date</th>
+                    <th style="padding: 12px; text-align: left;">Description</th>
+                    <th style="padding: 12px; text-align: right;">Amount</th>
+                    <th style="padding: 12px; text-align: left;">Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${recon.items.map(item => `
+                    <tr style="border-bottom: 1px solid var(--md-surface-container-high); ${item.cleared ? 'background: rgba(67, 160, 71, 0.1);' : ''}">
+                        <td style="padding: 12px;">
+                            <input type="checkbox" ${item.cleared ? 'checked' : ''}
+                                   ${recon.reconciled ? 'disabled' : ''}
+                                   onchange="toggleItem(${item.id})"
+                                   style="width: 20px; height: 20px; cursor: pointer;">
+                        </td>
+                        <td style="padding: 12px;">${new Date(item.transaction.transaction_date).toLocaleDateString()}</td>
+                        <td style="padding: 12px;">${item.transaction.description}${item.transaction.payee ? ` (${item.transaction.payee})` : ''}</td>
+                        <td style="padding: 12px; text-align: right; ${item.transaction.transaction_type === 'income' ? 'color: var(--md-success);' : 'color: var(--md-error);'}">
+                            ${item.transaction.transaction_type === 'income' ? '+' : '-'}$${item.transaction.amount.toFixed(2)}
+                        </td>
+                        <td style="padding: 12px;">${item.transaction.category || '-'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById('transactionsList').innerHTML = html;
+}
+
+async function toggleItem(itemId) {
+    try {
+        const response = await fetch(`/api/reconciliation/${currentReconciliationId}/items/${itemId}/toggle`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById('summaryBook').textContent = `$${data.book_balance.toFixed(2)}`;
+            document.getElementById('summaryDifference').textContent = `$${Math.abs(data.difference).toFixed(2)}`;
+
+            const differenceCard = document.getElementById('differenceCard');
+            differenceCard.style.background = Math.abs(data.difference) < 0.01 ? 'var(--md-success)' : 'var(--md-error)';
+
+            if (Math.abs(data.difference) < 0.01) {
+                document.getElementById('completeBtn').style.display = 'inline-flex';
+            } else {
+                document.getElementById('completeBtn').style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('Failed to toggle item', 'error');
+    }
+}
+
+async function completeReconciliation() {
+    if (!confirm('Mark this reconciliation as complete?')) return;
+
+    try {
+        const response = await fetch(`/api/reconciliation/${currentReconciliationId}/complete`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            closeDetailsModal();
+            loadReconciliations();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to complete', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('An error occurred', 'error');
+    }
+}
+
+async function deleteReconciliation(id) {
+    if (!confirm('Delete this reconciliation?')) return;
+
+    try {
+        const response = await fetch(`/api/reconciliation/${id}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showMaterialSnackbar(data.message, 'success');
+            loadReconciliations();
+        } else {
+            showMaterialSnackbar(data.error || 'Failed to delete', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMaterialSnackbar('An error occurred', 'error');
+    }
+}
+
+function closeDetailsModal() {
+    document.getElementById('reconciliationDetailsModal').style.display = 'none';
+    currentReconciliationId = null;
+}
+
+document.getElementById('reconciliationDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailsModal();
+});
+
+function showMaterialSnackbar(message, type = 'info') {
+    const snackbar = document.createElement('div');
+    snackbar.className = 'md-snackbar show';
+    const colors = {
+        'success': 'var(--md-success)',
+        'error': 'var(--md-error)',
+        'warning': 'var(--md-warning)',
+        'info': 'var(--md-info)'
+    };
+    snackbar.style.backgroundColor = colors[type] || colors.info;
+    snackbar.innerHTML = `<span>${message}</span>`;
+    document.body.appendChild(snackbar);
+    setTimeout(() => {
+        snackbar.style.opacity = '0';
+        setTimeout(() => snackbar.remove(), 300);
+    }, 5000);
+}
+</script>
+{% endblock %}
