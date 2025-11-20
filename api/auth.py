@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from models import db, User
+from flask_mail import Message
+from models import db, User, PasswordResetToken
 from utils import validate_email, validate_password_strength
 from logging_config import log_security_event
 from limiter import limiter
@@ -613,3 +614,172 @@ def update_profile():
         db.session.rollback()
         current_app.logger.error(f'Profile update error for user {current_user.username}: {str(e)}', exc_info=True)
         return jsonify({'error': 'Failed to update profile'}), 500
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("3 per hour", methods=['POST'])
+def forgot_password():
+    """Password reset request - send reset email"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json() if request.is_json else request.form
+            email = data.get('email', '').strip().lower()
+
+            if not email:
+                if request.is_json:
+                    return jsonify({'error': 'Email is required'}), 400
+                flash('Email is required', 'error')
+                return render_template('forgot_password.html')
+
+            # Find user by email (always return success to prevent email enumeration)
+            user = User.query.filter_by(email=email).first()
+
+            if user:
+                # Delete any existing unused tokens for this user
+                PasswordResetToken.query.filter_by(user_id=user.id, used=False).delete()
+
+                # Create new reset token
+                reset_token = PasswordResetToken.create_for_user(user, expiration_hours=1)
+                db.session.add(reset_token)
+                db.session.commit()
+
+                # Send reset email
+                from app import mail
+                reset_url = url_for('auth.reset_password', token=reset_token.token, _external=True)
+
+                msg = Message(
+                    'Password Reset Request - Personal Finance Tracker',
+                    sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                    recipients=[user.email]
+                )
+                msg.html = f'''
+                <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #10B981;">Password Reset Request</h2>
+                        <p>Hello <strong>{user.username}</strong>,</p>
+                        <p>You recently requested to reset your password for your Personal Finance Tracker account. Click the button below to reset it:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="{reset_url}" style="background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+                        </div>
+                        <p>Or copy and paste this link into your browser:</p>
+                        <p style="background: #f5f5f5; padding: 10px; word-break: break-all;">{reset_url}</p>
+                        <p><strong>This link will expire in 1 hour.</strong></p>
+                        <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
+                        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                        <p style="font-size: 12px; color: #666;">
+                            Made with ❤️ by <a href="https://github.com/lizardcat" style="color: #10B981;">Alex Raza</a>
+                        </p>
+                    </div>
+                </body>
+                </html>
+                '''
+
+                mail.send(msg)
+
+                # Log password reset request
+                log_security_event(
+                    'password_reset_requested',
+                    user_id=user.id,
+                    username=user.username,
+                    ip_address=request.remote_addr,
+                    details=f'Reset token sent to {email}'
+                )
+                current_app.logger.info(f'Password reset requested for {user.username} from IP {request.remote_addr}')
+
+            # Always return success message (prevent email enumeration)
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': 'If that email exists in our system, we have sent a password reset link.'
+                })
+
+            flash('If that email exists in our system, we have sent a password reset link. Please check your inbox.', 'success')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Password reset request error: {str(e)}', exc_info=True)
+            if request.is_json:
+                return jsonify({'error': 'Failed to process password reset request'}), 500
+            flash('An error occurred. Please try again later.', 'error')
+            return render_template('forgot_password.html')
+
+    return render_template('forgot_password.html')
+
+@auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit("5 per hour", methods=['POST'])
+def reset_password(token):
+    """Reset password with valid token"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    # Verify token
+    reset_token = PasswordResetToken.query.filter_by(token=token).first()
+
+    if not reset_token or not reset_token.is_valid():
+        if request.is_json:
+            return jsonify({'error': 'Invalid or expired reset token'}), 400
+        flash('This password reset link is invalid or has expired. Please request a new one.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json() if request.is_json else request.form
+            new_password = data.get('password', '')
+            confirm_password = data.get('confirm_password', '')
+
+            errors = []
+
+            # Validate passwords
+            if not new_password:
+                errors.append('Password is required')
+            elif new_password != confirm_password:
+                errors.append('Passwords do not match')
+            else:
+                password_errors = validate_password_strength(new_password)
+                errors.extend(password_errors)
+
+            if errors:
+                if request.is_json:
+                    return jsonify({'errors': errors}), 400
+                for error in errors:
+                    flash(error, 'error')
+                return render_template('reset_password.html', token=token)
+
+            # Update password
+            user = reset_token.user
+            user.set_password(new_password)
+            reset_token.mark_as_used()
+            db.session.commit()
+
+            # Log password reset
+            log_security_event(
+                'password_reset_completed',
+                user_id=user.id,
+                username=user.username,
+                ip_address=request.remote_addr,
+                details='Password reset successfully'
+            )
+            current_app.logger.info(f'Password reset completed for {user.username} from IP {request.remote_addr}')
+
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': 'Password has been reset successfully. You can now log in.'
+                })
+
+            flash('Your password has been reset successfully! You can now log in with your new password.', 'success')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Password reset error: {str(e)}', exc_info=True)
+            if request.is_json:
+                return jsonify({'error': 'Failed to reset password'}), 500
+            flash('An error occurred. Please try again.', 'error')
+            return render_template('reset_password.html', token=token)
+
+    return render_template('reset_password.html', token=token)

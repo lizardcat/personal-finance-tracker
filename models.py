@@ -1,8 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
+import secrets
 
 db = SQLAlchemy()
 
@@ -267,3 +268,42 @@ class ReconciliationItem(db.Model):
 
     def __repr__(self):
         return f'<ReconciliationItem Transaction:{self.transaction_id} Cleared:{self.cleared}>'
+
+class PasswordResetToken(db.Model):
+    """Password reset tokens for user account recovery"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('reset_tokens', lazy=True, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<PasswordResetToken User:{self.user_id} Expires:{self.expires_at}>'
+
+    @staticmethod
+    def generate_token():
+        """Generate a secure random token"""
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def create_for_user(user, expiration_hours=1):
+        """Create a new password reset token for a user"""
+        token = PasswordResetToken.generate_token()
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token=token,
+            expires_at=datetime.utcnow() + timedelta(hours=expiration_hours)
+        )
+        return reset_token
+
+    def is_valid(self):
+        """Check if token is still valid (not expired and not used)"""
+        return not self.used and datetime.utcnow() < self.expires_at
+
+    def mark_as_used(self):
+        """Mark token as used"""
+        self.used = True

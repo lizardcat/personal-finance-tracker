@@ -1,11 +1,15 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_required, current_user
+from flask_mail import Mail
 from flask_talisman import Talisman
 from models import db, User
 from config import config
 from logging_config import setup_logging
 from limiter import limiter
 import os
+
+# Initialize Flask-Mail
+mail = Mail()
 
 def create_app(config_name=None):
     """Application factory"""
@@ -17,6 +21,7 @@ def create_app(config_name=None):
     
     # Initialize extensions
     db.init_app(app)
+    mail.init_app(app)
 
     # Setup logging
     setup_logging(app)
