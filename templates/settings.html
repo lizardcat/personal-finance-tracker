@@ -33,8 +33,11 @@
 
                 <div class="md-text-field">
                     <select id="currency" name="default_currency">
-                        <option value="USD" {% if user.default_currency == 'USD' %}selected{% endif %}>USD - US Dollar</option>
-                        <option value="KES" {% if user.default_currency == 'KES' %}selected{% endif %}>KES - Kenyan Shilling</option>
+                        {% for currency_code in currencies %}
+                        <option value="{{ currency_code }}" {% if user.default_currency == currency_code %}selected{% endif %}>
+                            {{ currency_code }} - {{ currency_names[currency_code] }}
+                        </option>
+                        {% endfor %}
                     </select>
                     <label for="currency">Default Currency</label>
                 </div>
