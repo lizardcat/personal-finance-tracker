@@ -30,7 +30,62 @@ class Config:
     REPORTS_FOLDER = 'reports'
     
     # Default currencies
-    DEFAULT_CURRENCIES = ['USD', 'KES', 'EUR', 'GBP']
+    DEFAULT_CURRENCIES = [
+        'USD',  # US Dollar
+        'EUR',  # Euro
+        'GBP',  # British Pound
+        'KES',  # Kenyan Shilling
+        'TSH',  # Tanzanian Shilling
+        'CAD',  # Canadian Dollar
+        'AUD',  # Australian Dollar
+        'JPY',  # Japanese Yen
+        'CNY',  # Chinese Yuan
+        'INR',  # Indian Rupee
+        'ZAR',  # South African Rand
+        'NGN',  # Nigerian Naira
+        'GHS',  # Ghanaian Cedi
+        'UGX',  # Ugandan Shilling
+        'CHF',  # Swiss Franc
+        'SEK',  # Swedish Krona
+        'NOK',  # Norwegian Krone
+        'DKK',  # Danish Krone
+        'NZD',  # New Zealand Dollar
+        'SGD',  # Singapore Dollar
+        'HKD',  # Hong Kong Dollar
+        'MXN',  # Mexican Peso
+        'BRL',  # Brazilian Real
+        'AED',  # UAE Dirham
+        'SAR',  # Saudi Riyal
+    ]
+
+    # Currency names for display
+    CURRENCY_NAMES = {
+        'USD': 'US Dollar',
+        'EUR': 'Euro',
+        'GBP': 'British Pound',
+        'KES': 'Kenyan Shilling',
+        'TSH': 'Tanzanian Shilling',
+        'CAD': 'Canadian Dollar',
+        'AUD': 'Australian Dollar',
+        'JPY': 'Japanese Yen',
+        'CNY': 'Chinese Yuan',
+        'INR': 'Indian Rupee',
+        'ZAR': 'South African Rand',
+        'NGN': 'Nigerian Naira',
+        'GHS': 'Ghanaian Cedi',
+        'UGX': 'Ugandan Shilling',
+        'CHF': 'Swiss Franc',
+        'SEK': 'Swedish Krona',
+        'NOK': 'Norwegian Krone',
+        'DKK': 'Danish Krone',
+        'NZD': 'New Zealand Dollar',
+        'SGD': 'Singapore Dollar',
+        'HKD': 'Hong Kong Dollar',
+        'MXN': 'Mexican Peso',
+        'BRL': 'Brazilian Real',
+        'AED': 'UAE Dirham',
+        'SAR': 'Saudi Riyal',
+    }
     
     # Pagination
     TRANSACTIONS_PER_PAGE = 25

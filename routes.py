@@ -229,7 +229,13 @@ def reports():
 @login_required
 def settings():
     """User settings and preferences"""
-    return render_template('settings.html', user=current_user)
+    from flask import current_app
+    currencies = current_app.config['DEFAULT_CURRENCIES']
+    currency_names = current_app.config['CURRENCY_NAMES']
+    return render_template('settings.html',
+                         user=current_user,
+                         currencies=currencies,
+                         currency_names=currency_names)
 
 @main_bp.route('/faq')
 def faq():

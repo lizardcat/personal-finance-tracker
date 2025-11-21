@@ -132,29 +132,64 @@ class ExchangeRateService:
         return age < self.cache_duration
     
     def _get_default_rate(self, base_currency, target_currency):
-        """Get default exchange rate as fallback"""
+        """Get default exchange rate as fallback (approximate rates as of 2024)"""
         default_rates = {
+            # USD pairs
+            ('USD', 'EUR'): Decimal('0.92'),
+            ('USD', 'GBP'): Decimal('0.79'),
             ('USD', 'KES'): Decimal('150.0'),
-            ('KES', 'USD'): Decimal('0.0067'),
-            ('USD', 'EUR'): Decimal('0.85'),
-            ('EUR', 'USD'): Decimal('1.18'),
-            ('USD', 'GBP'): Decimal('0.73'),
-            ('GBP', 'USD'): Decimal('1.37'),
+            ('USD', 'TSH'): Decimal('2500.0'),
+            ('USD', 'CAD'): Decimal('1.35'),
+            ('USD', 'AUD'): Decimal('1.52'),
+            ('USD', 'JPY'): Decimal('148.0'),
+            ('USD', 'CNY'): Decimal('7.24'),
+            ('USD', 'INR'): Decimal('83.0'),
+            ('USD', 'ZAR'): Decimal('18.5'),
+            ('USD', 'NGN'): Decimal('1550.0'),
+            ('USD', 'GHS'): Decimal('12.0'),
+            ('USD', 'UGX'): Decimal('3700.0'),
+            ('USD', 'CHF'): Decimal('0.88'),
+            ('USD', 'SEK'): Decimal('10.5'),
+            ('USD', 'NOK'): Decimal('10.6'),
+            ('USD', 'DKK'): Decimal('6.85'),
+            ('USD', 'NZD'): Decimal('1.64'),
+            ('USD', 'SGD'): Decimal('1.34'),
+            ('USD', 'HKD'): Decimal('7.82'),
+            ('USD', 'MXN'): Decimal('17.0'),
+            ('USD', 'BRL'): Decimal('4.95'),
+            ('USD', 'AED'): Decimal('3.67'),
+            ('USD', 'SAR'): Decimal('3.75'),
+
+            # EUR pairs
+            ('EUR', 'USD'): Decimal('1.09'),
             ('EUR', 'GBP'): Decimal('0.86'),
+            ('EUR', 'KES'): Decimal('163.0'),
+            ('EUR', 'TSH'): Decimal('2720.0'),
+
+            # GBP pairs
+            ('GBP', 'USD'): Decimal('1.27'),
             ('GBP', 'EUR'): Decimal('1.16'),
-            ('KES', 'EUR'): Decimal('0.0057'),
-            ('EUR', 'KES'): Decimal('175.0'),
+            ('GBP', 'KES'): Decimal('190.0'),
+
+            # East African pairs
+            ('KES', 'USD'): Decimal('0.0067'),
+            ('KES', 'EUR'): Decimal('0.0061'),
+            ('KES', 'TSH'): Decimal('16.67'),
+            ('TSH', 'USD'): Decimal('0.0004'),
+            ('TSH', 'KES'): Decimal('0.06'),
+            ('UGX', 'USD'): Decimal('0.00027'),
+            ('UGX', 'KES'): Decimal('0.041'),
         }
-        
+
         rate = default_rates.get((base_currency, target_currency))
         if rate:
             return rate
-        
+
         # If no direct rate, try reverse rate
         reverse_rate = default_rates.get((target_currency, base_currency))
-        if reverse_rate:
+        if reverse_rate and reverse_rate > 0:
             return Decimal('1.0') / reverse_rate
-        
+
         # Ultimate fallback
         return Decimal('1.0')
 
