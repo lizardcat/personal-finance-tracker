@@ -157,12 +157,22 @@ def create_transaction():
         return jsonify({'error': 'Invalid recurring period'}), 400
     
     try:
+        # Capture exchange rate for historical accuracy
+        exchange_rate = None
+        if currency != current_user.default_currency:
+            try:
+                from services.exchange_rate_service import exchange_rate_service
+                exchange_rate = exchange_rate_service.get_rate(currency, current_user.default_currency)
+            except Exception as e:
+                current_app.logger.warning(f'Could not fetch exchange rate for {currency} to {current_user.default_currency}: {e}')
+
         # Create transaction
         transaction = Transaction(
             user_id=current_user.id,
             category_id=category_id,
             amount=amount,
             currency=currency,
+            exchange_rate_to_user_currency=exchange_rate,
             description=description,
             transaction_type=transaction_type,
             transaction_date=transaction_date,
