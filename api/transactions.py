@@ -259,10 +259,11 @@ def update_transaction(transaction_id):
     if not data:
         return jsonify({'error': 'No data provided'}), 400
     
-    # Store original values for budget adjustment
+    # Store original values for budget adjustment and audit logging
     original_amount = transaction.amount
     original_category_id = transaction.category_id
     original_type = transaction.transaction_type
+    original_description = transaction.description
     
     # Update fields if provided
     if 'amount' in data:

@@ -10,7 +10,16 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///finance_tracker.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    
+
+    # Database pool configuration - CRITICAL for preventing memory leaks
+    # Apply to all environments to prevent connection exhaustion
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 10,           # Maximum number of connections to keep open
+        'pool_recycle': 3600,      # Recycle connections after 1 hour (prevents stale connections)
+        'pool_pre_ping': True,     # Verify connections are alive before using them
+        'max_overflow': 20         # Maximum overflow connections beyond pool_size
+    }
+
     # Flask-Login settings
     REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 7  # 7 days
     REMEMBER_COOKIE_SECURE = True
@@ -125,13 +134,7 @@ class ProductionConfig(Config):
     REMEMBER_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
 
-    # Database pool configuration for production
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True,
-        'max_overflow': 20
-    }
+    # Database pool configuration inherited from base Config class
 
 class TestingConfig(Config):
     # Allow fallback SECRET_KEY for testing only
