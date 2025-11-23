@@ -162,7 +162,16 @@ def register():
             
             db.session.add(user)
             db.session.commit()
-            
+
+            # Create starter budget templates for the new user
+            try:
+                from database.budget_templates import create_starter_templates
+                create_starter_templates(user.id)
+                current_app.logger.info(f'Created starter budget templates for new user: {username}')
+            except Exception as e:
+                current_app.logger.warning(f'Failed to create starter templates for {username}: {e}')
+                # Don't fail registration if template creation fails
+
             # Log in the new user
             login_user(user)
 
