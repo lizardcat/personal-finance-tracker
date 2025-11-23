@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "steps": {
+    "install": {
+      "commands": [
+        "pip install -r requirements.txt"
+      ]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        "python scripts/migrate.py init"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "gunicorn app:app -c gunicorn_config.py"
+  }
+}
