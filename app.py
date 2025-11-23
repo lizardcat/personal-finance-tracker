@@ -120,11 +120,16 @@ def create_app(config_name=None):
         if config_name == 'production':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
-    
-    # Create tables on first run
-    with app.app_context():
-        db.create_all()
-    
+
+    # Create tables on first run (development only)
+    # In production, use migrations or init_db CLI command instead
+    if config_name == 'development':
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as e:
+                app.logger.warning(f'Could not create tables: {e}')
+
     return app
 
 # Create the Flask app
