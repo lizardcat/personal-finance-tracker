@@ -1,12 +1,8 @@
 [phases.setup]
-aptPkgs = ["python3-venv", "python3-pip"]
+aptPkgs = ["python3-venv", "python3-pip", "python3-full"]
 
 [phases.install]
-cmds = [
-  "python3 -m venv /opt/venv",
-  "/opt/venv/bin/pip install --upgrade pip",
-  "/opt/venv/bin/pip install -r requirements.txt"
-]
+cmds = ["python3 -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip && /opt/venv/bin/pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["/opt/venv/bin/python scripts/migrate.py init"]
