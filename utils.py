@@ -111,7 +111,7 @@ def validate_password_strength(password):
         return False, "Password must contain at least one number"
 
     if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;\'`~]', password):
-        return False, "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>_-+=[]\\\/;'`~)"
+        return False, r"Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>_-+=[]\/;'`~)"
 
     return True, ""
 
