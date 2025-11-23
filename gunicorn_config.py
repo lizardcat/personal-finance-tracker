@@ -9,7 +9,10 @@ bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
 backlog = 2048
 
 # Worker processes
-workers = int(os.environ.get('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
+# For Railway/Heroku: Use fewer workers to fit within memory limits
+# Default to 2 workers (good for 512MB RAM) instead of CPU * 2 + 1
+# Can be overridden with GUNICORN_WORKERS env var
+workers = int(os.environ.get('GUNICORN_WORKERS', 2))
 worker_class = 'sync'
 worker_connections = 1000
 max_requests = 1000  # Restart workers after this many requests to prevent memory leaks
