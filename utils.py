@@ -6,19 +6,91 @@ from flask_login import current_user
 import re
 import os
 
-def format_currency(amount, currency='USD'):
-    """Format currency amount for display"""
+def get_currency_symbol(currency='KES'):
+    """Get the symbol for a currency code"""
+    from config import Config
+    return Config.CURRENCY_SYMBOLS.get(currency, currency)
+
+def format_currency(amount, currency='KES', use_symbol=True):
+    """Format currency amount for display
+
+    Args:
+        amount: The amount to format
+        currency: Currency code (e.g. 'KES', 'USD')
+        use_symbol: If True, use currency symbol (KSh); if False, use code (KES)
+    """
     if amount is None:
-        return f"0.00 {currency}"
-    
+        amount = Decimal('0.00')
+
     # Convert to Decimal for precise calculations
     if not isinstance(amount, Decimal):
         amount = Decimal(str(amount))
-    
+
     # Round to 2 decimal places
     amount = amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    
-    return f"{amount:,.2f} {currency}"
+
+    # Format the number with commas
+    formatted_amount = f"{amount:,.2f}"
+
+    # Use symbol or code based on preference
+    if use_symbol:
+        symbol = get_currency_symbol(currency)
+        return f"{symbol} {formatted_amount}"
+    else:
+        return f"{formatted_amount} {currency}"
+
+def convert_currency(amount, from_currency, to_currency):
+    """Convert amount from one currency to another using exchange rates
+
+    Args:
+        amount: Amount to convert
+        from_currency: Source currency code
+        to_currency: Target currency code
+
+    Returns:
+        Converted amount as Decimal
+    """
+    if from_currency == to_currency:
+        return amount if isinstance(amount, Decimal) else Decimal(str(amount))
+
+    try:
+        from services.exchange_rate_service import exchange_rate_service
+        converted = exchange_rate_service.convert_amount(
+            amount if isinstance(amount, Decimal) else Decimal(str(amount)),
+            from_currency,
+            to_currency
+        )
+        return converted
+    except Exception as e:
+        # If conversion fails, return original amount
+        print(f"Currency conversion error: {e}")
+        return amount if isinstance(amount, Decimal) else Decimal(str(amount))
+
+def format_currency_with_original(amount, original_currency, display_currency, show_original=True):
+    """Format currency with optional original currency display
+
+    Args:
+        amount: The amount in original currency
+        original_currency: The currency the amount is in
+        display_currency: The currency to display/convert to
+        show_original: Whether to show original amount if different
+
+    Returns:
+        Formatted string like "KSh 15,000" or "KSh 15,000 ($100 USD)"
+    """
+    if original_currency == display_currency:
+        return format_currency(amount, display_currency)
+
+    # Convert to display currency
+    converted_amount = convert_currency(amount, original_currency, display_currency)
+    converted_str = format_currency(converted_amount, display_currency)
+
+    # Optionally show original
+    if show_original:
+        original_str = format_currency(amount, original_currency)
+        return f"{converted_str} ({original_str})"
+    else:
+        return converted_str
 
 def parse_currency(amount_str):
     """Parse currency string to Decimal"""

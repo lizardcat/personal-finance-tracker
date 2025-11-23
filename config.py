@@ -95,6 +95,38 @@ class Config:
         'AED': 'UAE Dirham',
         'SAR': 'Saudi Riyal',
     }
+
+    # Currency symbols for display
+    CURRENCY_SYMBOLS = {
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'KES': 'KSh',
+        'TSH': 'TSh',
+        'CAD': 'CA$',
+        'AUD': 'A$',
+        'JPY': '¥',
+        'CNY': '¥',
+        'INR': '₹',
+        'ZAR': 'R',
+        'NGN': '₦',
+        'GHS': 'GH₵',
+        'UGX': 'USh',
+        'CHF': 'CHF',
+        'SEK': 'kr',
+        'NOK': 'kr',
+        'DKK': 'kr',
+        'NZD': 'NZ$',
+        'SGD': 'S$',
+        'HKD': 'HK$',
+        'MXN': 'MX$',
+        'BRL': 'R$',
+        'AED': 'د.إ',
+        'SAR': 'ر.س',
+    }
+
+    # Default currency for new users
+    DEFAULT_CURRENCY = 'KES'
     
     # Pagination
     TRANSACTIONS_PER_PAGE = 25

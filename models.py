@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # User preferences
-    default_currency = db.Column(db.String(3), default='USD')
+    default_currency = db.Column(db.String(3), default='KES')
     monthly_income = db.Column(db.Numeric(10, 2), default=0)
     
     # Relationships
@@ -59,7 +59,7 @@ class Transaction(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('budget_category.id'), nullable=True)
     
     amount = db.Column(db.Numeric(10, 2), nullable=False)
-    currency = db.Column(db.String(3), default='USD')
+    currency = db.Column(db.String(3), default='KES')
     description = db.Column(db.String(255), nullable=False)
     transaction_type = db.Column(db.String(20), nullable=False)  # income, expense, transfer
     transaction_date = db.Column(db.Date, default=date.today)
