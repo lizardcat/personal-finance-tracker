@@ -60,6 +60,7 @@ class Transaction(db.Model):
     
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     currency = db.Column(db.String(3), default='KES')
+    exchange_rate_to_user_currency = db.Column(db.Numeric(12, 6), nullable=True)  # Historical exchange rate
     description = db.Column(db.String(255), nullable=False)
     transaction_type = db.Column(db.String(20), nullable=False)  # income, expense, transfer
     transaction_date = db.Column(db.Date, default=date.today)
@@ -71,7 +72,27 @@ class Transaction(db.Model):
     tags = db.Column(db.String(255))  # Comma-separated tags
     recurring = db.Column(db.Boolean, default=False)
     recurring_period = db.Column(db.String(20))  # daily, weekly, monthly, yearly
-    
+
+    def get_amount_in_currency(self, target_currency):
+        """Get transaction amount converted to target currency
+
+        Uses historical exchange rate if available, otherwise uses current rate
+        """
+        if self.currency == target_currency:
+            return self.amount
+
+        # Use stored historical rate if available
+        if self.exchange_rate_to_user_currency and target_currency == self.user.default_currency:
+            return self.amount * self.exchange_rate_to_user_currency
+
+        # Fall back to current exchange rate
+        from services.exchange_rate_service import exchange_rate_service
+        try:
+            rate = exchange_rate_service.get_rate(self.currency, target_currency)
+            return self.amount * rate
+        except:
+            return self.amount  # Return original if conversion fails
+
     def __repr__(self):
         return f'<Transaction {self.description}: {self.amount} {self.currency}>'
 

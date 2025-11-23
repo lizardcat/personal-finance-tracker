@@ -72,27 +72,66 @@ class AddTagsToTransactions(Migration):
 
 class AddRecurringToTransactions(Migration):
     """Example migration to add recurring fields to transactions"""
-    
+
     def __init__(self):
         super().__init__("002", "Add recurring fields to transactions")
-    
+
     def up(self):
         """Add recurring columns to transactions table"""
         print(f"Applying migration {self.version}: {self.description}")
         # This would add the recurring and recurring_period columns
         # db.engine.execute("ALTER TABLE transaction ADD COLUMN recurring BOOLEAN DEFAULT FALSE")
         # db.engine.execute("ALTER TABLE transaction ADD COLUMN recurring_period VARCHAR(20)")
-    
+
     def down(self):
         """Remove recurring columns from transactions table"""
         print(f"Reversing migration {self.version}: {self.description}")
         # db.engine.execute("ALTER TABLE transaction DROP COLUMN recurring")
         # db.engine.execute("ALTER TABLE transaction DROP COLUMN recurring_period")
 
+class AddExchangeRateToTransactions(Migration):
+    """Add exchange rate field to transactions for historical accuracy"""
+
+    def __init__(self):
+        super().__init__("003", "Add exchange_rate_to_user_currency to transactions")
+
+    def up(self):
+        """Add exchange_rate_to_user_currency column to transactions table"""
+        print(f"Applying migration {self.version}: {self.description}")
+        try:
+            from sqlalchemy import text
+            # Check if column already exists
+            inspector = db.inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('transaction')]
+
+            if 'exchange_rate_to_user_currency' not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE transaction ADD COLUMN exchange_rate_to_user_currency NUMERIC(12, 6)"))
+                    conn.commit()
+                print("Column added successfully")
+            else:
+                print("Column already exists, skipping")
+        except Exception as e:
+            print(f"Error adding column: {e}")
+            # Column might already exist or table structure is different
+            pass
+
+    def down(self):
+        """Remove exchange_rate_to_user_currency column from transactions table"""
+        print(f"Reversing migration {self.version}: {self.description}")
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE transaction DROP COLUMN IF EXISTS exchange_rate_to_user_currency"))
+                conn.commit()
+        except Exception as e:
+            print(f"Error removing column: {e}")
+
 # Migration registry
 MIGRATIONS = [
     AddTagsToTransactions(),
     AddRecurringToTransactions(),
+    AddExchangeRateToTransactions(),
 ]
 
 def get_applied_migrations():
