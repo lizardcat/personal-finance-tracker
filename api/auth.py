@@ -190,7 +190,15 @@ def register():
                 from app import mail
 
                 # Check if mail is configured
-                if current_app.config.get('MAIL_USERNAME'):
+                mail_username = current_app.config.get('MAIL_USERNAME')
+                mail_server = current_app.config.get('MAIL_SERVER')
+
+                if not mail_username or not mail_server:
+                    current_app.logger.warning(
+                        f'Email not configured - skipping welcome email for {email}. '
+                        f'Set MAIL_USERNAME and MAIL_SERVER in .env to enable emails.'
+                    )
+                elif mail_username:
                     dashboard_url = url_for('main.dashboard', _external=True)
                     faq_url = url_for('main.faq', _external=True)
 
@@ -356,9 +364,7 @@ Made with ❤️ by Alex Raza - https://github.com/lizardcat
                     )
 
                     mail.send(msg)
-                    current_app.logger.info(f'Welcome email sent to {email}')
-                else:
-                    current_app.logger.info(f'Email not configured - skipping welcome email for {email}')
+                    current_app.logger.info(f'Welcome email sent successfully to {email}')
 
             except Exception as email_error:
                 # Don't fail registration if email fails - just log it

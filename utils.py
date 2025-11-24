@@ -169,29 +169,29 @@ def validate_password_strength(password):
     Returns (is_valid, error_message)
 
     Requirements:
-    - At least 12 characters
-    - Contains uppercase letter
-    - Contains lowercase letter
-    - Contains digit
-    - Contains special character
+    - At least 8 characters
+    - Contains at least 3 of the following 4 types:
+      * Uppercase letter
+      * Lowercase letter
+      * Digit
+      * Special character
     """
     if not password:
         return False, "Password is required"
 
-    if len(password) < 12:
-        return False, "Password must be at least 12 characters long"
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
 
-    if not re.search(r'[A-Z]', password):
-        return False, "Password must contain at least one uppercase letter"
+    # Count how many character types are present
+    has_uppercase = bool(re.search(r'[A-Z]', password))
+    has_lowercase = bool(re.search(r'[a-z]', password))
+    has_digit = bool(re.search(r'\d', password))
+    has_special = bool(re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;\'`~]', password))
 
-    if not re.search(r'[a-z]', password):
-        return False, "Password must contain at least one lowercase letter"
+    types_count = sum([has_uppercase, has_lowercase, has_digit, has_special])
 
-    if not re.search(r'\d', password):
-        return False, "Password must contain at least one number"
-
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;\'`~]', password):
-        return False, r"Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>_-+=[]\/;'`~)"
+    if types_count < 3:
+        return False, "Password must contain at least 3 of the following: uppercase letter, lowercase letter, number, or special character"
 
     return True, ""
 
