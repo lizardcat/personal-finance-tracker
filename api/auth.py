@@ -1,12 +1,18 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify, current_app, send_file
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_mail import Message
-from models import db, User, PasswordResetToken
+from models import db, User, PasswordResetToken, Transaction, BudgetCategory, Milestone
 from utils import validate_email, validate_password_strength
 from logging_config import log_security_event
 from limiter import limiter
+from config import Config
+from services.export_service import export_service
+from database.backup_restore import backup_database
+from database.budget_templates import create_starter_templates
 import re
+import os
 from urllib.parse import urlparse, urljoin
+from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -165,7 +171,6 @@ def register():
 
             # Create starter budget templates for the new user
             try:
-                from database.budget_templates import create_starter_templates
                 create_starter_templates(user.id)
                 current_app.logger.info(f'Created starter budget templates for new user: {username}')
             except Exception as e:
@@ -187,7 +192,7 @@ def register():
 
             # Send welcome email (if email is configured)
             try:
-                from app import mail
+                from app import mail  # Import here to avoid circular import
 
                 # Check if mail is configured
                 mail_username = current_app.config.get('MAIL_USERNAME')
@@ -464,7 +469,6 @@ def profile():
             errors.append('Invalid monthly income amount')
 
         # Validate currency
-        from config import Config
         if default_currency not in Config.DEFAULT_CURRENCIES:
             errors.append('Invalid currency')
 
@@ -576,9 +580,6 @@ def check_email():
 def export_user_data():
     """Export all user data as JSON backup"""
     try:
-        from services.export_service import export_service
-        from flask import send_file
-
         # Export full backup
         result = export_service.export_full_backup(current_user.id)
 
@@ -609,16 +610,11 @@ def export_user_data():
 def backup_user_data():
     """Create a database backup"""
     try:
-        from database.backup_restore import backup_database
-        from flask import send_file
-        import os
-
         # Create backup directory
         backup_dir = 'backups'
         os.makedirs(backup_dir, exist_ok=True)
 
         # Generate backup filename
-        from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_filename = f"backup_{current_user.username}_{timestamp}.json"
         backup_path = os.path.join(backup_dir, backup_filename)
@@ -658,8 +654,6 @@ def backup_user_data():
 def clear_user_data():
     """Clear all user data (transactions, categories, milestones)"""
     try:
-        from models import Transaction, BudgetCategory, Milestone
-
         # Verify confirmation
         data = request.get_json()
         confirmation = data.get('confirmation', '')
@@ -779,7 +773,6 @@ def update_profile():
             errors.append('Invalid monthly income amount')
 
         # Validate currency
-        from config import Config
         if default_currency not in Config.DEFAULT_CURRENCIES:
             errors.append('Invalid currency')
 
@@ -846,7 +839,7 @@ def forgot_password():
                 db.session.commit()
 
                 # Send reset email
-                from app import mail
+                from app import mail  # Import here to avoid circular import
                 reset_url = url_for('auth.reset_password', token=reset_token.token, _external=True)
 
                 msg = Message(

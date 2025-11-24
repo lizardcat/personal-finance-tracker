@@ -3,6 +3,9 @@ from flask_login import login_required, current_user
 from models import db, Transaction, BudgetCategory
 from utils import login_required_api, parse_currency, format_currency
 from logging_config import log_audit_event
+from services.budget_service import budget_service
+from services.exchange_rate_service import exchange_rate_service
+from services.recurring_service import recurring_service
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, date
 from sqlalchemy import desc, func
@@ -161,7 +164,6 @@ def create_transaction():
         exchange_rate = None
         if currency != current_user.default_currency:
             try:
-                from services.exchange_rate_service import exchange_rate_service
                 exchange_rate = exchange_rate_service.get_rate(currency, current_user.default_currency)
             except Exception as e:
                 current_app.logger.warning(f'Could not fetch exchange rate for {currency} to {current_user.default_currency}: {e}')
@@ -182,12 +184,11 @@ def create_transaction():
             recurring=recurring,
             recurring_period=recurring_period
         )
-        
+
         db.session.add(transaction)
-        
-        # Update budget category if it's an expense
-        if category and transaction_type == 'expense':
-            category.available_amount -= amount
+
+        # Update budget category using service
+        budget_service.adjust_category_on_transaction_update(transaction)
 
         db.session.commit()
 
@@ -333,19 +334,14 @@ def update_transaction(transaction_id):
         transaction.recurring_period = data['recurring_period']
     
     try:
-        # Adjust budget categories
-        # Revert original impact
-        if original_category_id and original_type == 'expense':
-            original_category = BudgetCategory.query.get(original_category_id)
-            if original_category:
-                original_category.available_amount += original_amount
-        
-        # Apply new impact
-        if transaction.category_id and transaction.transaction_type == 'expense':
-            new_category = BudgetCategory.query.get(transaction.category_id)
-            if new_category:
-                new_category.available_amount -= transaction.amount
-        
+        # Adjust budget categories using service
+        budget_service.adjust_category_on_transaction_update(
+            transaction,
+            old_category_id=original_category_id,
+            old_amount=original_amount,
+            old_type=original_type
+        )
+
         db.session.commit()
 
         # Log audit event for transaction update
@@ -395,11 +391,13 @@ def delete_transaction(transaction_id):
     trans_details = f'{transaction.transaction_type}: {transaction.amount} {transaction.currency} - {transaction.description}'
 
     try:
-        # Adjust budget category if needed
-        if transaction.category_id and transaction.transaction_type == 'expense':
-            category = BudgetCategory.query.get(transaction.category_id)
-            if category:
-                category.available_amount += transaction.amount
+        # Adjust budget category using service (revert the transaction's impact)
+        budget_service.adjust_category_on_transaction_update(
+            transaction,
+            old_category_id=transaction.category_id,
+            old_amount=transaction.amount,
+            old_type=transaction.transaction_type
+        )
 
         db.session.delete(transaction)
         db.session.commit()
@@ -615,8 +613,6 @@ def get_recurring_transactions():
 @login_required_api
 def get_recurring_summary():
     """Get summary of recurring transactions"""
-    from services.recurring_service import recurring_service
-
     summary = recurring_service.get_recurring_transaction_summary(current_user.id)
 
     return jsonify({
@@ -633,8 +629,6 @@ def get_upcoming_recurring():
     days_ahead = request.args.get('days', 30, type=int)
     days_ahead = min(days_ahead, 365)  # Max 1 year
 
-    from services.recurring_service import recurring_service
-
     upcoming = recurring_service.get_upcoming_occurrences(current_user.id, days_ahead)
 
     return jsonify({'upcoming_occurrences': upcoming})
@@ -644,8 +638,6 @@ def get_upcoming_recurring():
 def process_recurring_transactions():
     """Process recurring transactions for the current user (create due occurrences)"""
     dry_run = request.args.get('dry_run', 'false').lower() == 'true'
-
-    from services.recurring_service import recurring_service
 
     # Get only the user's recurring transactions
     user_recurring = Transaction.query.filter_by(
