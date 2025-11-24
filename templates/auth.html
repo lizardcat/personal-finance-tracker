@@ -1,446 +1,617 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if show_register %}Register{% else %}Login{% endif %} - Personal Finance Tracker</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% if show_register %}Register{% else %}Login{% endif %} - Personal
+      Finance Tracker
+    </title>
 
     <!-- Google Fonts - Roboto -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
 
     <!-- Material Design Theme -->
-    <link href="{{ url_for('static', filename='css/material-theme.css') }}" rel="stylesheet">
+    <link
+      href="{{ url_for('static', filename='css/material-theme.css') }}"
+      rel="stylesheet"
+    />
 
     <style>
-        body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, var(--md-primary) 0%, var(--md-primary-dark) 100%);
-            margin: 0;
-            padding: 0;
-        }
+      body {
+        min-height: 100vh;
+        background: linear-gradient(
+          135deg,
+          var(--md-primary) 0%,
+          var(--md-primary-dark) 100%
+        );
+        margin: 0;
+        padding: 0;
+      }
 
-        .auth-nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            box-shadow: var(--md-elevation-1);
-            padding: 16px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 1000;
-        }
+      .auth-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--md-elevation-1);
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 1000;
+      }
 
-        .auth-nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 18px;
-            font-weight: 500;
-            color: var(--md-primary);
-            text-decoration: none;
-        }
+      .auth-nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--md-primary);
+        text-decoration: none;
+      }
 
+      .auth-nav-links {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .auth-nav-link {
+        color: var(--md-on-surface);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: color var(--md-transition-fast);
+      }
+
+      .auth-nav-link:hover {
+        color: var(--md-primary);
+      }
+
+      .auth-page {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 100px 24px 24px;
+      }
+
+      .auth-container {
+        width: 100%;
+        max-width: 440px;
+      }
+
+      .auth-header {
+        text-align: center;
+        margin-bottom: 32px;
+        color: white;
+      }
+
+      .auth-header h1 {
+        font-size: 28px;
+        font-weight: 400;
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .auth-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .auth-card {
+        background: white;
+        border-radius: var(--md-radius-xl);
+        box-shadow: var(--md-elevation-5);
+        overflow: hidden;
+      }
+
+      .auth-card-body {
+        padding: 32px;
+      }
+
+      .auth-footer {
+        text-align: center;
+        margin-top: 24px;
+        color: white;
+      }
+
+      .auth-footer a {
+        color: white;
+        text-decoration: underline;
+        font-weight: 500;
+      }
+
+      .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--md-on-surface-variant);
+        cursor: pointer;
+        padding: 8px;
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 20px 0;
+      }
+
+      .checkbox-container input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      .checkbox-container label {
+        cursor: pointer;
+        margin: 0;
+        user-select: none;
+      }
+
+      .info-box {
+        background: var(--md-surface-container);
+        border-radius: var(--md-radius-md);
+        padding: 16px;
+        margin-top: 24px;
+        font-size: 13px;
+        color: var(--md-on-surface-variant);
+        text-align: center;
+      }
+
+      @media (max-width: 600px) {
         .auth-nav-links {
-            display: flex;
-            gap: 20px;
-            align-items: center;
+          gap: 12px;
         }
 
         .auth-nav-link {
-            color: var(--md-on-surface);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 14px;
-            transition: color var(--md-transition-fast);
+          font-size: 13px;
         }
 
-        .auth-nav-link:hover {
-            color: var(--md-primary);
+        .auth-nav-brand span {
+          display: none;
         }
-
-        .auth-page {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 100px 24px 24px;
-        }
-
-        .auth-container {
-            width: 100%;
-            max-width: 440px;
-        }
-
-        .auth-header {
-            text-align: center;
-            margin-bottom: 32px;
-            color: white;
-        }
-
-        .auth-header h1 {
-            font-size: 28px;
-            font-weight: 400;
-            margin: 0 0 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .auth-header p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 14px;
-        }
-
-        .auth-card {
-            background: white;
-            border-radius: var(--md-radius-xl);
-            box-shadow: var(--md-elevation-5);
-            overflow: hidden;
-        }
-
-        .auth-card-body {
-            padding: 32px;
-        }
-
-        .auth-footer {
-            text-align: center;
-            margin-top: 24px;
-            color: white;
-        }
-
-        .auth-footer a {
-            color: white;
-            text-decoration: underline;
-            font-weight: 500;
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--md-on-surface-variant);
-            cursor: pointer;
-            padding: 8px;
-        }
-
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 20px 0;
-        }
-
-        .checkbox-container input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .checkbox-container label {
-            cursor: pointer;
-            margin: 0;
-            user-select: none;
-        }
-
-        .info-box {
-            background: var(--md-surface-container);
-            border-radius: var(--md-radius-md);
-            padding: 16px;
-            margin-top: 24px;
-            font-size: 13px;
-            color: var(--md-on-surface-variant);
-            text-align: center;
-        }
-
-        @media (max-width: 600px) {
-            .auth-nav-links {
-                gap: 12px;
-            }
-
-            .auth-nav-link {
-                font-size: 13px;
-            }
-
-            .auth-nav-brand span {
-                display: none;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation Bar -->
     <nav class="auth-nav">
-        <a href="{{ url_for('main.index') }}" class="auth-nav-brand">
-            <i class="fas fa-wallet" style="font-size: 20px;"></i>
-            <span>Finance Tracker</span>
+      <a href="{{ url_for('main.index') }}" class="auth-nav-brand">
+        <i class="fas fa-wallet" style="font-size: 20px"></i>
+        <span>Finance Tracker</span>
+      </a>
+      <div class="auth-nav-links">
+        <a href="{{ url_for('main.faq') }}" class="auth-nav-link">
+          <i class="fas fa-lightbulb"></i> YNAB Guide
         </a>
-        <div class="auth-nav-links">
-            <a href="{{ url_for('main.faq') }}" class="auth-nav-link">
-                <i class="fas fa-lightbulb"></i> YNAB Guide
-            </a>
-            {% if show_register %}
-                <a href="{{ url_for('auth.login') }}" class="auth-nav-link">
-                    <i class="fas fa-sign-in-alt"></i> Sign In
-                </a>
-            {% else %}
-                <a href="{{ url_for('auth.register') }}" class="auth-nav-link">
-                    <i class="fas fa-user-plus"></i> Register
-                </a>
-            {% endif %}
-        </div>
+        {% if show_register %}
+        <a href="{{ url_for('auth.login') }}" class="auth-nav-link">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </a>
+        {% else %}
+        <a href="{{ url_for('auth.register') }}" class="auth-nav-link">
+          <i class="fas fa-user-plus"></i> Register
+        </a>
+        {% endif %}
+      </div>
     </nav>
 
     <!-- Auth Page Content -->
     <div class="auth-page">
-        <div class="auth-container">
-            <!-- Header -->
-            <div class="auth-header">
-                <h1>
-                    <i class="fas fa-wallet"></i>
-                    Finance Tracker
-                </h1>
-                <p>{% if show_register %}Create your account{% else %}Welcome back{% endif %}</p>
-            </div>
+      <div class="auth-container">
+        <!-- Header -->
+        <div class="auth-header">
+          <h1>
+            <i class="fas fa-wallet"></i>
+            Finance Tracker
+          </h1>
+          <p>
+            {% if show_register %}Create your account{% else %}Welcome back{%
+            endif %}
+          </p>
+        </div>
 
         <!-- Auth Card -->
         <div class="auth-card">
-            <div class="auth-card-body">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="md-snackbar show" style="position: static; transform: none; margin-bottom: 24px; background-color: {% if category == 'error' %}var(--md-error){% else %}var(--md-info){% endif %};">
-                                <span>{{ message }}</span>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+          <div class="auth-card-body">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %} {%
+            if messages %} {% for category, message in messages %}
+            <div
+              class="md-snackbar show"
+              style="position: static; transform: none; margin-bottom: 24px; background-color: {% if category == 'error' %}var(--md-error){% else %}var(--md-info){% endif %};"
+            >
+              <span>{{ message }}</span>
+            </div>
+            {% endfor %} {% endif %} {% endwith %} {% if show_register %}
+            <!-- Registration Form -->
+            <form
+              method="POST"
+              action="{{ url_for('auth.register') }}"
+              id="authForm"
+            >
+              <div class="md-text-field">
+                <input
+                  type="text"
+                  name="username"
+                  id="username"
+                  placeholder=" "
+                  required
+                />
+                <label for="username">Username</label>
+              </div>
 
-                {% if show_register %}
-                <!-- Registration Form -->
-                <form method="POST" action="{{ url_for('auth.register') }}" id="authForm">
-                    <div class="md-text-field">
-                        <input type="text" name="username" id="username" placeholder=" " required>
-                        <label for="username">Username</label>
-                    </div>
+              <div class="md-text-field">
+                <input
+                  type="email"
+                  name="email"
+                  id="email"
+                  placeholder=" "
+                  required
+                />
+                <label for="email">Email Address</label>
+              </div>
 
-                    <div class="md-text-field">
-                        <input type="email" name="email" id="email" placeholder=" " required>
-                        <label for="email">Email Address</label>
-                    </div>
+              <div class="md-text-field" style="position: relative">
+                <input
+                  type="password"
+                  name="password"
+                  id="registerPassword"
+                  placeholder=" "
+                  required
+                  oninput="checkPasswordStrength()"
+                />
+                <label for="registerPassword">Password</label>
+                <button
+                  type="button"
+                  class="password-toggle"
+                  onclick="togglePassword('registerPassword')"
+                >
+                  <i class="fas fa-eye" id="registerPassword-icon"></i>
+                </button>
+              </div>
 
-                    <div class="md-text-field" style="position: relative;">
-                        <input type="password" name="password" id="registerPassword" placeholder=" " required oninput="checkPasswordStrength()">
-                        <label for="registerPassword">Password</label>
-                        <button type="button" class="password-toggle" onclick="togglePassword('registerPassword')">
-                            <i class="fas fa-eye" id="registerPassword-icon"></i>
-                        </button>
-                    </div>
-
-                    <!-- Password Strength Meter -->
-                    <div id="passwordStrength" style="margin-top: 8px; margin-bottom: 16px;">
-                        <!-- Strength Bar -->
-                        <div style="height: 4px; background: var(--md-surface-variant); border-radius: 2px; overflow: hidden; margin-bottom: 12px;">
-                            <div id="strengthBar" style="height: 100%; width: 0%; transition: all 0.3s ease; background: #ccc;"></div>
-                        </div>
-
-                        <!-- Requirements Checklist -->
-                        <div style="background: var(--md-surface-container); padding: 12px; border-radius: var(--md-radius-sm); font-size: 13px;">
-                            <p style="margin: 0 0 8px 0; font-weight: 500; color: var(--md-on-surface);">Password must have:</p>
-                            <ul style="margin: 0; padding-left: 0; list-style: none;">
-                                <li id="req-length" style="margin: 4px 0; color: var(--md-on-surface-variant);">
-                                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 8px;"></i>
-                                    At least 8 characters
-                                </li>
-                                <li id="req-types" style="margin: 4px 0; color: var(--md-on-surface-variant);">
-                                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 8px;"></i>
-                                    3 of: uppercase, lowercase, number, or special character
-                                </li>
-                            </ul>
-                            <p style="margin: 12px 0 0 0; font-size: 12px; color: var(--md-on-surface-variant); opacity: 0.7;">
-                                <i class="fas fa-lightbulb"></i> Examples: <strong>MyPass123</strong>, <strong>hello@world1</strong>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="md-text-field" style="position: relative;">
-                        <input type="password" name="confirm_password" id="confirm_password" placeholder=" " required>
-                        <label for="confirm_password">Confirm Password</label>
-                        <button type="button" class="password-toggle" onclick="togglePassword('confirm_password')">
-                            <i class="fas fa-eye" id="confirm_password-icon"></i>
-                        </button>
-                    </div>
-
-                    <button type="submit" class="md-btn md-btn-filled" style="width: 100%; justify-content: center;">
-                        Create Account
-                    </button>
-                </form>
-
-                {% else %}
-                <!-- Login Form -->
-                <form method="POST" action="{{ url_for('auth.login') }}" id="authForm">
-                    <div class="md-text-field">
-                        <input type="text" name="username" id="username" placeholder=" " required autofocus>
-                        <label for="username">Username or Email</label>
-                    </div>
-
-                    <div class="md-text-field" style="position: relative;">
-                        <input type="password" name="password" id="password" placeholder=" " required>
-                        <label for="password">Password</label>
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                            <i class="fas fa-eye" id="password-icon"></i>
-                        </button>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <div class="checkbox-container" style="margin: 0;">
-                            <input type="checkbox" id="remember_me" name="remember_me">
-                            <label for="remember_me">Remember me</label>
-                        </div>
-                        <a href="{{ url_for('auth.forgot_password') }}" style="color: var(--md-primary); text-decoration: none; font-size: 14px; font-weight: 500;">
-                            Forgot Password?
-                        </a>
-                    </div>
-
-                    <button type="submit" class="md-btn md-btn-filled" style="width: 100%; justify-content: center;">
-                        Sign In
-                    </button>
-                </form>
-                {% endif %}
-
-                <!-- Divider -->
-                <div class="md-divider" style="margin: 24px 0;"></div>
-
-                <!-- Switch Auth Mode -->
-                <div style="text-align: center;">
-                    {% if show_register %}
-                        <p style="color: var(--md-on-surface-variant); margin: 0;">
-                            Already have an account?
-                            <a href="{{ url_for('auth.login') }}" style="color: var(--md-primary); text-decoration: none; font-weight: 500;">
-                                Sign in
-                            </a>
-                        </p>
-                    {% else %}
-                        <p style="color: var(--md-on-surface-variant); margin: 0;">
-                            Don't have an account?
-                            <a href="{{ url_for('auth.register') }}" style="color: var(--md-primary); text-decoration: none; font-weight: 500;">
-                                Create one
-                            </a>
-                        </p>
-                    {% endif %}
+              <!-- Password Strength Meter -->
+              <div
+                id="passwordStrength"
+                style="margin-top: 8px; margin-bottom: 16px"
+              >
+                <!-- Strength Bar -->
+                <div
+                  style="
+                    height: 4px;
+                    background: var(--md-surface-variant);
+                    border-radius: 2px;
+                    overflow: hidden;
+                    margin-bottom: 12px;
+                  "
+                >
+                  <div
+                    id="strengthBar"
+                    style="
+                      height: 100%;
+                      width: 0%;
+                      transition: all 0.3s ease;
+                      background: #ccc;
+                    "
+                  ></div>
                 </div>
+
+                <!-- Requirements Checklist -->
+                <div
+                  style="
+                    background: var(--md-surface-container);
+                    padding: 12px;
+                    border-radius: var(--md-radius-sm);
+                    font-size: 13px;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0 0 8px 0;
+                      font-weight: 500;
+                      color: var(--md-on-surface);
+                    "
+                  >
+                    Password must have:
+                  </p>
+                  <ul style="margin: 0; padding-left: 0; list-style: none">
+                    <li
+                      id="req-length"
+                      style="margin: 4px 0; color: var(--md-on-surface-variant)"
+                    >
+                      <i
+                        class="fas fa-circle"
+                        style="font-size: 8px; margin-right: 8px"
+                      ></i>
+                      At least 8 characters
+                    </li>
+                    <li
+                      id="req-types"
+                      style="margin: 4px 0; color: var(--md-on-surface-variant)"
+                    >
+                      <i
+                        class="fas fa-circle"
+                        style="font-size: 8px; margin-right: 8px"
+                      ></i>
+                      3 of: uppercase, lowercase, number, or special character
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="md-text-field" style="position: relative">
+                <input
+                  type="password"
+                  name="confirm_password"
+                  id="confirm_password"
+                  placeholder=" "
+                  required
+                />
+                <label for="confirm_password">Confirm Password</label>
+                <button
+                  type="button"
+                  class="password-toggle"
+                  onclick="togglePassword('confirm_password')"
+                >
+                  <i class="fas fa-eye" id="confirm_password-icon"></i>
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                class="md-btn md-btn-filled"
+                style="width: 100%; justify-content: center"
+              >
+                Create Account
+              </button>
+            </form>
+
+            {% else %}
+            <!-- Login Form -->
+            <form
+              method="POST"
+              action="{{ url_for('auth.login') }}"
+              id="authForm"
+            >
+              <div class="md-text-field">
+                <input
+                  type="text"
+                  name="username"
+                  id="username"
+                  placeholder=" "
+                  required
+                  autofocus
+                />
+                <label for="username">Username or Email</label>
+              </div>
+
+              <div class="md-text-field" style="position: relative">
+                <input
+                  type="password"
+                  name="password"
+                  id="password"
+                  placeholder=" "
+                  required
+                />
+                <label for="password">Password</label>
+                <button
+                  type="button"
+                  class="password-toggle"
+                  onclick="togglePassword('password')"
+                >
+                  <i class="fas fa-eye" id="password-icon"></i>
+                </button>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 20px;
+                "
+              >
+                <div class="checkbox-container" style="margin: 0">
+                  <input type="checkbox" id="remember_me" name="remember_me" />
+                  <label for="remember_me">Remember me</label>
+                </div>
+                <a
+                  href="{{ url_for('auth.forgot_password') }}"
+                  style="
+                    color: var(--md-primary);
+                    text-decoration: none;
+                    font-size: 14px;
+                    font-weight: 500;
+                  "
+                >
+                  Forgot Password?
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                class="md-btn md-btn-filled"
+                style="width: 100%; justify-content: center"
+              >
+                Sign In
+              </button>
+            </form>
+            {% endif %}
+
+            <!-- Divider -->
+            <div class="md-divider" style="margin: 24px 0"></div>
+
+            <!-- Switch Auth Mode -->
+            <div style="text-align: center">
+              {% if show_register %}
+              <p style="color: var(--md-on-surface-variant); margin: 0">
+                Already have an account?
+                <a
+                  href="{{ url_for('auth.login') }}"
+                  style="
+                    color: var(--md-primary);
+                    text-decoration: none;
+                    font-weight: 500;
+                  "
+                >
+                  Sign in
+                </a>
+              </p>
+              {% else %}
+              <p style="color: var(--md-on-surface-variant); margin: 0">
+                Don't have an account?
+                <a
+                  href="{{ url_for('auth.register') }}"
+                  style="
+                    color: var(--md-primary);
+                    text-decoration: none;
+                    font-weight: 500;
+                  "
+                >
+                  Create one
+                </a>
+              </p>
+              {% endif %}
             </div>
+          </div>
         </div>
 
-            <!-- Footer -->
-            <div class="auth-footer">
-                <p style="font-size: 13px; opacity: 0.9; margin: 16px 0 8px 0;">
-                    © <span id="currentYear"></span> Personal Finance Tracker. Secure & Private.
-                </p>
-                <p style="font-size: 12px; opacity: 0.85; margin: 8px 0 0 0;">
-                    Made with <span style="color: #EF4444;">❤️</span> by <a href="https://github.com/lizardcat" target="_blank" rel="noopener noreferrer" style="color: #10B981; text-decoration: none; font-weight: 500;">Alex Raza</a>
-                </p>
-            </div>
+        <!-- Footer -->
+        <div class="auth-footer">
+          <p style="font-size: 13px; opacity: 0.9; margin: 16px 0 8px 0">
+            © <span id="currentYear"></span> Personal Finance Tracker. Secure &
+            Private.
+          </p>
+          <p style="font-size: 12px; opacity: 0.85; margin: 8px 0 0 0">
+            Made with <span style="color: #ef4444">❤️</span> by
+            <a
+              href="https://github.com/lizardcat"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #10b981; text-decoration: none; font-weight: 500"
+              >Alex Raza</a
+            >
+          </p>
         </div>
+      </div>
     </div>
 
     <script>
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const icon = document.getElementById(fieldId + '-icon');
+      function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const icon = document.getElementById(fieldId + "-icon");
 
-            if (field.type === 'password') {
-                field.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                field.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+        if (field.type === "password") {
+          field.type = "text";
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+        } else {
+          field.type = "password";
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
         }
+      }
 
-        // Password strength checker
-        function checkPasswordStrength() {
-            const password = document.getElementById('registerPassword').value;
-            const strengthBar = document.getElementById('strengthBar');
-            const reqLength = document.getElementById('req-length');
-            const reqTypes = document.getElementById('req-types');
+      // Password strength checker
+      function checkPasswordStrength() {
+        const password = document.getElementById("registerPassword").value;
+        const strengthBar = document.getElementById("strengthBar");
+        const reqLength = document.getElementById("req-length");
+        const reqTypes = document.getElementById("req-types");
 
-            // Check requirements
-            const hasLength = password.length >= 8;
-            const hasUppercase = /[A-Z]/.test(password);
-            const hasLowercase = /[a-z]/.test(password);
-            const hasDigit = /\d/.test(password);
-            const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password);
+        // Check requirements
+        const hasLength = password.length >= 8;
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasDigit = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(
+          password
+        );
 
-            // Count character types
-            const typesCount = [hasUppercase, hasLowercase, hasDigit, hasSpecial].filter(Boolean).length;
-            const hasThreeTypes = typesCount >= 3;
+        // Count character types
+        const typesCount = [
+          hasUppercase,
+          hasLowercase,
+          hasDigit,
+          hasSpecial,
+        ].filter(Boolean).length;
+        const hasThreeTypes = typesCount >= 3;
 
-            // Update requirement indicators
-            updateRequirement(reqLength, hasLength);
-            updateRequirement(reqTypes, hasThreeTypes);
+        // Update requirement indicators
+        updateRequirement(reqLength, hasLength);
+        updateRequirement(reqTypes, hasThreeTypes);
 
-            // Calculate strength (0-100)
-            let strength = 0;
-            if (password.length > 0) strength += 20;
-            if (hasLength) strength += 30;
-            if (hasThreeTypes) strength += 50;
+        // Calculate strength (0-100)
+        let strength = 0;
+        if (password.length > 0) strength += 20;
+        if (hasLength) strength += 30;
+        if (hasThreeTypes) strength += 50;
 
-            // Update strength bar
-            strengthBar.style.width = strength + '%';
+        // Update strength bar
+        strengthBar.style.width = strength + "%";
 
-            // Color based on strength
-            if (strength < 50) {
-                strengthBar.style.background = '#EF4444'; // Red - Weak
-            } else if (strength < 80) {
-                strengthBar.style.background = '#F59E0B'; // Orange - Fair
-            } else {
-                strengthBar.style.background = '#10B981'; // Green - Strong
-            }
+        // Color based on strength
+        if (strength < 50) {
+          strengthBar.style.background = "#EF4444"; // Red - Weak
+        } else if (strength < 80) {
+          strengthBar.style.background = "#F59E0B"; // Orange - Fair
+        } else {
+          strengthBar.style.background = "#10B981"; // Green - Strong
         }
+      }
 
-        function updateRequirement(element, isMet) {
-            const icon = element.querySelector('i');
-            if (isMet) {
-                icon.classList.remove('fa-circle');
-                icon.classList.add('fa-check-circle');
-                element.style.color = 'var(--md-success)';
-            } else {
-                icon.classList.remove('fa-check-circle');
-                icon.classList.add('fa-circle');
-                element.style.color = 'var(--md-on-surface-variant)';
-            }
+      function updateRequirement(element, isMet) {
+        const icon = element.querySelector("i");
+        if (isMet) {
+          icon.classList.remove("fa-circle");
+          icon.classList.add("fa-check-circle");
+          element.style.color = "var(--md-success)";
+        } else {
+          icon.classList.remove("fa-check-circle");
+          icon.classList.add("fa-circle");
+          element.style.color = "var(--md-on-surface-variant)";
         }
+      }
 
-        // Set current year in footer
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
+      // Set current year in footer
+      document.getElementById("currentYear").textContent =
+        new Date().getFullYear();
 
-        // Auto-hide flash messages
-        document.addEventListener('DOMContentLoaded', function() {
-            const snackbars = document.querySelectorAll('.md-snackbar');
-            snackbars.forEach((snackbar) => {
-                setTimeout(() => {
-                    snackbar.style.opacity = '0';
-                    setTimeout(() => snackbar.remove(), 300);
-                }, 5000);
-            });
+      // Auto-hide flash messages
+      document.addEventListener("DOMContentLoaded", function () {
+        const snackbars = document.querySelectorAll(".md-snackbar");
+        snackbars.forEach((snackbar) => {
+          setTimeout(() => {
+            snackbar.style.opacity = "0";
+            setTimeout(() => snackbar.remove(), 300);
+          }, 5000);
         });
+      });
     </script>
-</body>
+  </body>
 </html>
