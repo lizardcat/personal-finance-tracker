@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Personal Finance Tracker - Manage your finances with YNAB principles">
+    <meta name="theme-color" content="#10B981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Finance Tracker">
+    <meta name="format-detection" content="telephone=no">
     <title>{% block title %}Personal Finance Tracker{% endblock %}</title>
 
     <!-- Google Fonts - Roboto -->
@@ -23,6 +29,14 @@
     <link href="{{ url_for('static', filename='css/material-theme.css') }}" rel="stylesheet">
 </head>
 <body>
+    <!-- Mobile Menu Button -->
+    <button class="md-mobile-menu-btn" id="mobileMenuBtn" onclick="toggleNavDrawer()" aria-label="Toggle navigation menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Backdrop Overlay for Mobile -->
+    <div class="md-backdrop" id="backdrop" onclick="closeNavDrawer()"></div>
+
     <!-- Material Design Navigation Drawer -->
     <nav class="md-nav-drawer" id="navDrawer">
         <!-- App Logo and Title -->
@@ -163,6 +177,29 @@
             }
         })();
 
+        // Mobile Navigation Functions
+        function toggleNavDrawer() {
+            const navDrawer = document.getElementById('navDrawer');
+            const backdrop = document.getElementById('backdrop');
+            const isOpen = navDrawer.classList.contains('open');
+
+            if (isOpen) {
+                closeNavDrawer();
+            } else {
+                navDrawer.classList.add('open');
+                backdrop.classList.add('show');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            }
+        }
+
+        function closeNavDrawer() {
+            const navDrawer = document.getElementById('navDrawer');
+            const backdrop = document.getElementById('backdrop');
+            navDrawer.classList.remove('open');
+            backdrop.classList.remove('show');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
         // Auto-hide snackbars after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
             const snackbars = document.querySelectorAll('.md-snackbar');
@@ -173,11 +210,15 @@
                 }, 5000 + (index * 500));
             });
 
-            // Mobile navigation toggle (optional)
-            const navDrawer = document.getElementById('navDrawer');
-            if (window.innerWidth < 768) {
-                navDrawer.classList.remove('open');
-            }
+            // Close mobile nav when clicking on nav items
+            const navItems = document.querySelectorAll('.md-nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    if (window.innerWidth < 768) {
+                        closeNavDrawer();
+                    }
+                });
+            });
         });
     </script>
 

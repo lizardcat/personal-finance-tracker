@@ -435,8 +435,8 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    min-width: 344px;
-    max-width: 672px;
+    min-width: 280px;
+    max-width: calc(100vw - 32px);
     opacity: 0;
     transition: all var(--md-transition-normal);
     z-index: 10000;
@@ -487,20 +487,54 @@ body {
     width: 24px;
     height: 24px;
     color: var(--md-on-surface-variant);
+    flex-shrink: 0;
 }
 
 .md-list-item-text {
     flex: 1;
+    min-width: 0; /* Allow text to shrink and wrap */
 }
 
 .md-list-item-primary {
     font-size: 16px;
     color: var(--md-on-surface);
+    word-wrap: break-word;
 }
 
 .md-list-item-secondary {
     font-size: 14px;
     color: var(--md-on-surface-variant);
+    word-wrap: break-word;
+}
+
+/* Tables - Make them scrollable on mobile */
+.table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--md-surface-container-high);
+}
+
+table th {
+    font-weight: 500;
+    color: var(--md-on-surface-variant);
+    background-color: var(--md-surface-container);
+}
+
+/* Chart containers - ensure they're responsive */
+canvas {
+    max-width: 100%;
+    height: auto !important;
 }
 
 /* Material Design Divider */
@@ -533,25 +567,155 @@ body {
     .md-grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Mobile Menu Button */
+.md-mobile-menu-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--md-radius-full);
+    background-color: var(--md-primary);
+    color: var(--md-on-primary);
+    border: none;
+    box-shadow: var(--md-elevation-2);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    z-index: 1001;
+    transition: all var(--md-transition-fast);
+}
+
+.md-mobile-menu-btn:active {
+    transform: scale(0.95);
+}
+
+/* Backdrop Overlay */
+.md-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--md-transition-normal);
+    z-index: 99;
+}
+
+.md-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+    .md-grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .md-grid-cols-3 { grid-template-columns: repeat(2, 1fr); }
+
+    /* Better spacing on tablets */
+    .md-container {
+        padding: 20px;
+    }
+}
+
 @media (max-width: 768px) {
     .md-container {
         margin-left: 0;
         padding: 16px;
+        padding-top: 80px; /* Space for mobile menu button */
     }
 
     .md-nav-drawer {
         transform: translateX(-100%);
         transition: transform var(--md-transition-normal);
+        z-index: 100;
     }
 
     .md-nav-drawer.open {
         transform: translateX(0);
     }
 
+    .md-mobile-menu-btn {
+        display: flex;
+    }
+
     .md-grid-cols-2,
     .md-grid-cols-3,
     .md-grid-cols-4 {
         grid-template-columns: repeat(1, 1fr);
+    }
+
+    /* Make FAB smaller and reposition on mobile */
+    .md-fab {
+        width: 48px;
+        height: 48px;
+        bottom: 16px;
+        right: 16px;
+    }
+
+    /* Better button sizing for touch */
+    .md-btn {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+
+    .md-btn-icon {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Responsive snackbar */
+    .md-snackbar {
+        min-width: auto;
+        width: calc(100vw - 32px);
+        left: 16px;
+        right: 16px;
+        transform: translateX(0) translateY(100px);
+        bottom: 16px;
+    }
+
+    .md-snackbar.show {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .md-container {
+        padding: 12px;
+        padding-top: 72px;
+    }
+
+    /* Smaller text on very small screens */
+    h1 {
+        font-size: 24px !important;
+    }
+
+    h2 {
+        font-size: 20px !important;
+    }
+
+    /* Card padding adjustment */
+    .md-card-body {
+        padding: 16px;
+    }
+
+    .md-card-header {
+        padding: 16px;
+    }
+
+    /* List item padding */
+    .md-list-item {
+        padding: 10px 12px;
+    }
+
+    /* Smaller gaps in grids */
+    .md-grid {
+        gap: 16px;
     }
 }
 
@@ -570,6 +734,167 @@ body {
 .p-1 { padding: 8px; }
 .p-2 { padding: 16px; }
 .p-3 { padding: 24px; }
+
+/* Responsive Utilities */
+.mobile-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.mobile-full-width {
+    width: 100%;
+}
+
+/* Make button groups wrap on mobile */
+@media (max-width: 768px) {
+    /* Page headers that have title and actions */
+    div[style*="display: flex"][style*="justify-content: space-between"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 16px;
+    }
+
+    /* Button groups in headers */
+    div[style*="display: flex"][style*="gap"] button,
+    div[style*="display: flex"][style*="gap"] a.md-btn {
+        flex: 1 1 auto;
+        min-width: fit-content;
+    }
+
+    /* Make forms stack better on mobile */
+    form[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Card titles and actions */
+    .md-card-header[style*="display: flex"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+}
+
+/* Very small screens - make buttons full width */
+@media (max-width: 480px) {
+    div[style*="display: flex"][style*="gap"] {
+        width: 100%;
+    }
+
+    div[style*="display: flex"][style*="gap"] button,
+    div[style*="display: flex"][style*="gap"] a.md-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Make text fields better on small screens */
+    .md-text-field input,
+    .md-text-field select,
+    .md-text-field textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Ensure gradient cards are readable on small screens */
+    .md-card-body h2 {
+        font-size: 24px !important;
+    }
+
+    .md-card-body h6 {
+        font-size: 12px !important;
+    }
+
+    /* Icon sizes in list items for mobile */
+    .md-list-item-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Better chip sizing on mobile */
+    .md-chip {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+}
+
+/* Modal dialogs - ensure they're mobile friendly */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-content {
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--md-surface);
+    border-radius: var(--md-radius-lg);
+    box-shadow: var(--md-elevation-5);
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 100%;
+        max-height: calc(100vh - 32px);
+    }
+
+    /* Ensure modal forms are usable on mobile */
+    .modal .md-text-field {
+        margin-bottom: 16px;
+    }
+
+    /* Modal buttons should stack on mobile */
+    .modal .md-card-actions {
+        flex-direction: column;
+    }
+
+    .modal .md-card-actions button,
+    .modal .md-card-actions a {
+        width: 100%;
+    }
+}
+
+/* Improve canvas sizing for charts on mobile */
+@media (max-width: 768px) {
+    canvas {
+        max-height: 250px !important;
+    }
+
+    /* List items with complex layouts */
+    .md-list-item {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    /* Better overflow handling */
+    * {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 896px) and (orientation: landscape) {
+    .md-container {
+        padding-top: 60px;
+    }
+
+    .md-mobile-menu-btn {
+        top: 8px;
+        left: 8px;
+        width: 44px;
+        height: 44px;
+    }
+}
 
 /* Animations */
 @keyframes fadeIn {
