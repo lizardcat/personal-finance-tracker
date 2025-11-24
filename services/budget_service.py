@@ -353,16 +353,38 @@ class BudgetService:
         """Calculate whether spending is trending up, down, or stable"""
         if len(trend_data) < 2:
             return 'stable'
-        
+
         recent_avg = sum(item['spent'] for item in trend_data[-2:]) / 2
         older_avg = sum(item['spent'] for item in trend_data[:-2]) / max(1, len(trend_data) - 2)
-        
+
         if recent_avg > older_avg * 1.1:  # 10% threshold
             return 'increasing'
         elif recent_avg < older_avg * 0.9:
             return 'decreasing'
         else:
             return 'stable'
+
+    @staticmethod
+    def adjust_category_on_transaction_update(transaction, old_category_id=None, old_amount=None, old_type=None):
+        """Adjust budget category amounts when a transaction is created, updated, or deleted
+
+        Args:
+            transaction: Transaction object
+            old_category_id: Previous category ID (for updates)
+            old_amount: Previous amount (for updates)
+            old_type: Previous transaction type (for updates)
+        """
+        # Revert impact from old transaction values (if this is an update)
+        if old_category_id and old_type == 'expense':
+            old_category = BudgetCategory.query.get(old_category_id)
+            if old_category:
+                old_category.available_amount += old_amount or Decimal('0')
+
+        # Apply impact from new transaction values
+        if transaction.category_id and transaction.transaction_type == 'expense':
+            new_category = BudgetCategory.query.get(transaction.category_id)
+            if new_category:
+                new_category.available_amount -= transaction.amount
 
 # Create singleton instance
 budget_service = BudgetService()

@@ -45,9 +45,33 @@ class BudgetCategory(db.Model):
     # Relationships
     transactions = db.relationship('Transaction', backref='budget_category', lazy=True)
     
-    def update_available_amount(self):
-        """Update available amount based on allocated amount and transactions"""
-        total_spent = sum(t.amount for t in self.transactions if t.transaction_type == 'expense')
+    def update_available_amount(self, start_date=None, end_date=None):
+        """Update available amount based on allocated amount and transactions for a specific period
+
+        Args:
+            start_date: Start date for the budget period (defaults to first day of current month)
+            end_date: End date for the budget period (defaults to last day of current month)
+        """
+        from datetime import date
+        from calendar import monthrange
+
+        # Default to current month if no dates provided
+        if start_date is None:
+            today = date.today()
+            start_date = date(today.year, today.month, 1)
+
+        if end_date is None:
+            today = date.today()
+            last_day = monthrange(today.year, today.month)[1]
+            end_date = date(today.year, today.month, last_day)
+
+        # Calculate total spent for this period only
+        total_spent = sum(
+            t.amount for t in self.transactions
+            if t.transaction_type == 'expense'
+            and t.transaction_date >= start_date
+            and t.transaction_date <= end_date
+        )
         self.available_amount = self.allocated_amount - total_spent
     
     def __repr__(self):

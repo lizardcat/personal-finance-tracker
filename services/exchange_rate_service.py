@@ -12,7 +12,6 @@ class ExchangeRateService:
 
     def __init__(self):
         self.api_key = Config.EXCHANGE_API_KEY
-        self.api_url = Config.EXCHANGE_API_URL
         self.cache_duration = timedelta(hours=1)  # Cache rates for 1 hour
 
         # Create persistent HTTP session with connection pooling to prevent connection leaks
@@ -93,26 +92,30 @@ class ExchangeRateService:
         return Config.DEFAULT_CURRENCIES
     
     def _fetch_rate_from_api(self, base_currency, target_currency):
-        """Fetch exchange rate from external API"""
-        if not self.api_url:
-            raise Exception("Exchange rate API URL not configured")
+        """Fetch exchange rate from external API (V6)"""
+        if not self.api_key:
+            raise Exception("Exchange rate API Key not configured")
 
-        url = f"{self.api_url}{base_currency}"
-
-        headers = {}
-        if self.api_key:
-            headers['Authorization'] = f"Bearer {self.api_key}"
+        # V6 URL structure: v6/API_KEY/latest/BASE_CURRENCY
+        url = f"https://v6.exchangerate-api.com/v6/{self.api_key}/latest/{base_currency}"
 
         # Use persistent session instead of requests.get to enable connection pooling
-        response = self.session.get(url, headers=headers, timeout=10)
+        # No headers needed - API key is in URL path
+        response = self.session.get(url, timeout=10)
         response.raise_for_status()
-        
+
         data = response.json()
-        
-        if 'rates' not in data or target_currency not in data['rates']:
+
+        # Check for API errors
+        if data.get('result') == 'error':
+            error_type = data.get('error-type', 'unknown')
+            raise Exception(f"Exchange rate API error: {error_type}")
+
+        # V6 API response structure has conversion_rates instead of rates
+        if 'conversion_rates' not in data or target_currency not in data['conversion_rates']:
             raise Exception(f"Rate for {target_currency} not found in response")
-        
-        rate = Decimal(str(data['rates'][target_currency]))
+
+        rate = Decimal(str(data['conversion_rates'][target_currency]))
         return rate
     
     def _update_cached_rate(self, base_currency, target_currency, rate):
