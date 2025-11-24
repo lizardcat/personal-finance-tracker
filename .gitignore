@@ -168,3 +168,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Claude Files
+CLAUDE.md
+PHASE1_SECURITY_FIXES.md
+RAILWAY_DEPLOYMENT.md
+SECURITY.md
