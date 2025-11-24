@@ -114,7 +114,7 @@ def create_starter_templates(user_id):
         for category in template_data['categories']:
             item = BudgetTemplateItem(
                 template_id=template.id,
-                name=category['name'],
+                category_name=category['name'],  # Fixed: was 'name', should be 'category_name'
                 allocated_amount=category['amount'],
                 category_type=category['type'],
                 color=category['color']

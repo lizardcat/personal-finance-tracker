@@ -244,11 +244,37 @@
                     </div>
 
                     <div class="md-text-field" style="position: relative;">
-                        <input type="password" name="password" id="password" placeholder=" " required>
-                        <label for="password">Password</label>
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                            <i class="fas fa-eye" id="password-icon"></i>
+                        <input type="password" name="password" id="registerPassword" placeholder=" " required oninput="checkPasswordStrength()">
+                        <label for="registerPassword">Password</label>
+                        <button type="button" class="password-toggle" onclick="togglePassword('registerPassword')">
+                            <i class="fas fa-eye" id="registerPassword-icon"></i>
                         </button>
+                    </div>
+
+                    <!-- Password Strength Meter -->
+                    <div id="passwordStrength" style="margin-top: 8px; margin-bottom: 16px;">
+                        <!-- Strength Bar -->
+                        <div style="height: 4px; background: var(--md-surface-variant); border-radius: 2px; overflow: hidden; margin-bottom: 12px;">
+                            <div id="strengthBar" style="height: 100%; width: 0%; transition: all 0.3s ease; background: #ccc;"></div>
+                        </div>
+
+                        <!-- Requirements Checklist -->
+                        <div style="background: var(--md-surface-container); padding: 12px; border-radius: var(--md-radius-sm); font-size: 13px;">
+                            <p style="margin: 0 0 8px 0; font-weight: 500; color: var(--md-on-surface);">Password must have:</p>
+                            <ul style="margin: 0; padding-left: 0; list-style: none;">
+                                <li id="req-length" style="margin: 4px 0; color: var(--md-on-surface-variant);">
+                                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 8px;"></i>
+                                    At least 8 characters
+                                </li>
+                                <li id="req-types" style="margin: 4px 0; color: var(--md-on-surface-variant);">
+                                    <i class="fas fa-circle" style="font-size: 8px; margin-right: 8px;"></i>
+                                    3 of: uppercase, lowercase, number, or special character
+                                </li>
+                            </ul>
+                            <p style="margin: 12px 0 0 0; font-size: 12px; color: var(--md-on-surface-variant); opacity: 0.7;">
+                                <i class="fas fa-lightbulb"></i> Examples: <strong>MyPass123</strong>, <strong>hello@world1</strong>
+                            </p>
+                        </div>
                     </div>
 
                     <div class="md-text-field" style="position: relative;">
@@ -257,16 +283,6 @@
                         <button type="button" class="password-toggle" onclick="togglePassword('confirm_password')">
                             <i class="fas fa-eye" id="confirm_password-icon"></i>
                         </button>
-                    </div>
-
-                    <div class="info-box" style="margin-top: 12px; margin-bottom: 20px; text-align: left;">
-                        <strong style="display: block; margin-bottom: 8px; color: var(--md-on-surface);">Password Requirements:</strong>
-                        <ul style="margin: 0; padding-left: 20px; font-size: 12px;">
-                            <li>At least 12 characters long</li>
-                            <li>Contains uppercase and lowercase letters</li>
-                            <li>Contains at least one number</li>
-                            <li>Contains at least one special character</li>
-                        </ul>
                     </div>
 
                     <button type="submit" class="md-btn md-btn-filled" style="width: 100%; justify-content: center;">
@@ -355,6 +371,60 @@
                 field.type = 'password';
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
+            }
+        }
+
+        // Password strength checker
+        function checkPasswordStrength() {
+            const password = document.getElementById('registerPassword').value;
+            const strengthBar = document.getElementById('strengthBar');
+            const reqLength = document.getElementById('req-length');
+            const reqTypes = document.getElementById('req-types');
+
+            // Check requirements
+            const hasLength = password.length >= 8;
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasLowercase = /[a-z]/.test(password);
+            const hasDigit = /\d/.test(password);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password);
+
+            // Count character types
+            const typesCount = [hasUppercase, hasLowercase, hasDigit, hasSpecial].filter(Boolean).length;
+            const hasThreeTypes = typesCount >= 3;
+
+            // Update requirement indicators
+            updateRequirement(reqLength, hasLength);
+            updateRequirement(reqTypes, hasThreeTypes);
+
+            // Calculate strength (0-100)
+            let strength = 0;
+            if (password.length > 0) strength += 20;
+            if (hasLength) strength += 30;
+            if (hasThreeTypes) strength += 50;
+
+            // Update strength bar
+            strengthBar.style.width = strength + '%';
+
+            // Color based on strength
+            if (strength < 50) {
+                strengthBar.style.background = '#EF4444'; // Red - Weak
+            } else if (strength < 80) {
+                strengthBar.style.background = '#F59E0B'; // Orange - Fair
+            } else {
+                strengthBar.style.background = '#10B981'; // Green - Strong
+            }
+        }
+
+        function updateRequirement(element, isMet) {
+            const icon = element.querySelector('i');
+            if (isMet) {
+                icon.classList.remove('fa-circle');
+                icon.classList.add('fa-check-circle');
+                element.style.color = 'var(--md-success)';
+            } else {
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-circle');
+                element.style.color = 'var(--md-on-surface-variant)';
             }
         }
 
