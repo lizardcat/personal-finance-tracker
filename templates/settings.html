@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="md-text-field">
-                    <select id="currency" name="default_currency">
+                    <select id="currency" name="default_currency" onchange="showCurrencyWarning()">
                         {% for currency_code in currencies %}
                         <option value="{{ currency_code }}" {% if user.default_currency == currency_code %}selected{% endif %}>
                             {{ currency_code }} - {{ currency_names[currency_code] }}
@@ -40,6 +40,17 @@
                         {% endfor %}
                     </select>
                     <label for="currency">Default Currency</label>
+                </div>
+
+                <!-- Currency Change Warning -->
+                <div id="currencyWarning" style="display: none; margin-top: 8px; padding: 12px; background: rgba(255, 193, 7, 0.1); border-left: 4px solid var(--md-warning); border-radius: 4px;">
+                    <p style="margin: 0; font-size: 13px; color: var(--md-on-surface);">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--md-warning);"></i>
+                        <strong>Important:</strong> Changing your currency only affects how amounts are <em>displayed</em>.
+                        Your existing transaction values and budgets will NOT be converted.
+                        <br><br>
+                        For example: If you have $100 USD recorded and switch to EUR, it will display as €100 EUR (not converted to the equivalent Euro amount).
+                    </p>
                 </div>
 
                 <div class="md-text-field">
@@ -187,10 +198,46 @@
 
 {% block extra_js %}
 <script>
+// Store original currency to detect changes
+let originalCurrency = document.getElementById('currency').value;
+
+function showCurrencyWarning() {
+    const currentCurrency = document.getElementById('currency').value;
+    const warningDiv = document.getElementById('currencyWarning');
+
+    // Show warning only if currency was actually changed from original
+    if (currentCurrency !== originalCurrency) {
+        warningDiv.style.display = 'block';
+    } else {
+        warningDiv.style.display = 'none';
+    }
+}
+
 async function updateProfile() {
     const email = document.getElementById('email').value;
     const monthlyIncome = document.getElementById('monthly_income').value;
     const currency = document.getElementById('currency').value;
+
+    // Confirm currency change if different from original
+    if (currency !== originalCurrency) {
+        const confirmed = confirm(
+            '⚠️ Currency Change Confirmation\n\n' +
+            `You are changing your display currency from ${originalCurrency} to ${currency}.\n\n` +
+            'IMPORTANT: This will NOT convert your existing amounts. ' +
+            'It only changes the currency symbol displayed.\n\n' +
+            'For example:\n' +
+            `• $100 USD will display as ${currency} 100 (not converted)\n` +
+            `• Your budget allocations will show ${currency} symbols\n\n` +
+            'Continue with this change?'
+        );
+
+        if (!confirmed) {
+            // Reset to original currency
+            document.getElementById('currency').value = originalCurrency;
+            showCurrencyWarning();
+            return;
+        }
+    }
 
     try {
         const response = await fetch('/auth/api/update-profile', {
@@ -209,6 +256,10 @@ async function updateProfile() {
 
         if (response.ok) {
             showMaterialSnackbar(data.message, 'success');
+            // Update original currency after successful save
+            originalCurrency = currency;
+            // Hide warning after successful save
+            document.getElementById('currencyWarning').style.display = 'none';
         } else {
             if (data.errors) {
                 data.errors.forEach(err => showMaterialSnackbar(err, 'error'));
