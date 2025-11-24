@@ -11,12 +11,12 @@ def get_currency_symbol(currency='KES'):
     from config import Config
     return Config.CURRENCY_SYMBOLS.get(currency, currency)
 
-def format_currency(amount, currency='KES', use_symbol=True):
+def format_currency(amount, currency=None, use_symbol=True):
     """Format currency amount for display
 
     Args:
         amount: The amount to format
-        currency: Currency code (e.g. 'KES', 'USD')
+        currency: Currency code (e.g. 'KES', 'USD'). If None, uses current user's default currency
         use_symbol: If True, use currency symbol (KSh); if False, use code (KES)
     """
     if amount is None:
@@ -31,6 +31,14 @@ def format_currency(amount, currency='KES', use_symbol=True):
 
     # Format the number with commas
     formatted_amount = f"{amount:,.2f}"
+
+    # If no currency specified, use current user's default currency
+    if currency is None:
+        from flask_login import current_user
+        if current_user and current_user.is_authenticated and hasattr(current_user, 'default_currency'):
+            currency = current_user.default_currency or 'KES'
+        else:
+            currency = 'KES'  # Fallback for non-authenticated users
 
     # Use symbol or code based on preference
     if use_symbol:
