@@ -44,13 +44,16 @@
 
                 <!-- Currency Change Warning -->
                 <div id="currencyWarning" style="display: none; margin-top: 8px; padding: 12px; background: rgba(255, 193, 7, 0.1); border-left: 4px solid var(--md-warning); border-radius: 4px;">
-                    <p style="margin: 0; font-size: 13px; color: var(--md-on-surface);">
+                    <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--md-on-surface);">
                         <i class="fas fa-exclamation-triangle" style="color: var(--md-warning);"></i>
-                        <strong>Important:</strong> Changing your currency only affects how amounts are <em>displayed</em>.
-                        Your existing transaction values and budgets will NOT be converted.
-                        <br><br>
-                        For example: If you have $100 USD recorded and switch to EUR, it will display as €100 EUR (not converted to the equivalent Euro amount).
+                        <strong>Important - Currency Display Only:</strong>
                     </p>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--md-on-surface-variant); line-height: 1.6;">
+                        <li>Changes how amounts are <em>displayed</em>, NOT their actual value</li>
+                        <li>Existing values will NOT be converted (e.g., $100 → €100, not €92)</li>
+                        <li>Exchange rates shown are approximate and may be inaccurate</li>
+                        <li>For accurate conversions, consult your bank or financial institution</li>
+                    </ul>
                 </div>
 
                 <div class="md-text-field">
