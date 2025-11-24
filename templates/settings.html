@@ -44,7 +44,7 @@
 
                 <div class="md-text-field">
                     <input type="number" id="monthly_income" name="monthly_income" value="{{ user.monthly_income or 0 }}" step="0.01" placeholder=" ">
-                    <label for="monthly_income">Monthly Income ($)</label>
+                    <label for="monthly_income">Monthly Income</label>
                 </div>
 
                 <button type="button" class="md-btn md-btn-filled" style="width: 100%; justify-content: center;" onclick="updateProfile()">
@@ -175,9 +175,9 @@
                 <p style="margin: 0;"><strong>Total Transactions:</strong> {{ user.transactions|length }}</p>
             </div>
             <div>
-                <p style="margin: 0 0 12px 0;"><strong>Version:</strong> 1.0.0</p>
-                <p style="margin: 0 0 12px 0;"><strong>Last Login:</strong> Today</p>
-                <p style="margin: 0;"><strong>Data Storage:</strong> Local Database</p>
+                <p style="margin: 0 0 12px 0;"><strong>Version:</strong> 2.0.0</p>
+                <p style="margin: 0 0 12px 0;"><strong>Default Currency:</strong> {{ user.default_currency or 'KES' }}</p>
+                <p style="margin: 0;"><strong>Data Security:</strong> Encrypted & Backed Up</p>
             </div>
         </div>
     </div>

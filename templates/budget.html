@@ -11,7 +11,14 @@
             <i class="fas fa-calculator"></i>
             Budget Management
         </h1>
-        <p style="color: var(--md-on-surface-variant); margin: 8px 0 0 0;">Exchange Rate: 1 USD = {{ "%.2f"|format(exchange_rate) }} KES</p>
+        <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0 0 0;">
+            <p style="color: var(--md-on-surface-variant); margin: 0;">
+                Exchange Rate: 1 USD = <span id="exchangeRateDisplay">{{ "%.2f"|format(exchange_rate) }}</span> KES
+            </p>
+            <button class="md-btn md-btn-text" onclick="openCurrencyConverterModal()" title="Currency Converter" style="padding: 4px 8px; min-width: auto;">
+                <i class="fas fa-calculator"></i>
+            </button>
+        </div>
     </div>
     <div style="display: flex; gap: 12px;">
         <button class="md-btn md-btn-text" onclick="openTemplatesModal()" title="Load or manage budget templates">
@@ -229,7 +236,7 @@
                 <!-- Allocated Amount -->
                 <div class="md-text-field">
                     <input type="number" name="allocated_amount" id="allocatedAmount" step="0.01" min="0" placeholder=" " required>
-                    <label for="allocatedAmount">Allocated Amount ($)</label>
+                    <label for="allocatedAmount">Allocated Amount</label>
                 </div>
 
                 <!-- Color -->
@@ -274,7 +281,7 @@
                 <!-- Transfer Amount -->
                 <div class="md-text-field">
                     <input type="number" id="transferAmount" step="0.01" min="0.01" placeholder=" " required>
-                    <label for="transferAmount">Transfer Amount ($)</label>
+                    <label for="transferAmount">Transfer Amount</label>
                 </div>
                 <p id="availableAmount" style="font-size: 12px; color: var(--md-on-surface-variant); margin-top: -12px; margin-bottom: 16px;">
                     Select a category to see available amount
@@ -349,6 +356,46 @@
         </div>
         <div class="md-card-actions">
             <button type="button" class="md-btn md-btn-text" onclick="closeTemplatesModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Currency Converter Modal -->
+<div id="currencyConverterModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div class="md-card" style="width: 500px; max-width: 90%; margin: 24px;">
+        <div class="md-card-header">
+            <h5 class="md-card-title">Currency Converter</h5>
+        </div>
+        <div class="md-card-body">
+            <p style="color: var(--md-on-surface-variant); margin-bottom: 24px; font-size: 14px;">
+                Convert between USD and KES using the current exchange rate.
+            </p>
+
+            <div class="md-text-field">
+                <input type="number" id="amountUSD" step="0.01" min="0" placeholder=" " oninput="convertUSDToKES()">
+                <label for="amountUSD">Amount (USD)</label>
+            </div>
+
+            <div style="text-align: center; margin: 16px 0;">
+                <i class="fas fa-exchange-alt" style="color: var(--md-primary); font-size: 24px;"></i>
+                <p style="margin: 8px 0; color: var(--md-on-surface-variant); font-size: 14px;">
+                    1 USD = <span id="modalExchangeRate">{{ "%.2f"|format(exchange_rate) }}</span> KES
+                </p>
+            </div>
+
+            <div class="md-text-field">
+                <input type="number" id="amountKES" step="0.01" min="0" placeholder=" " oninput="convertKESToUSD()">
+                <label for="amountKES">Amount (KES)</label>
+            </div>
+
+            <div style="margin-top: 24px; padding: 16px; background: var(--md-surface-container); border-radius: var(--md-radius-sm);">
+                <p style="margin: 0; font-size: 13px; color: var(--md-on-surface-variant);">
+                    <i class="fas fa-info-circle"></i> Exchange rates are updated hourly from external sources.
+                </p>
+            </div>
+        </div>
+        <div class="md-card-actions">
+            <button type="button" class="md-btn md-btn-text" onclick="closeCurrencyConverterModal()">Close</button>
         </div>
     </div>
 </div>
@@ -875,6 +922,48 @@ async function deleteTemplate(templateId, templateName) {
     } catch (error) {
         console.error('Error deleting template:', error);
         showMaterialSnackbar('An error occurred while deleting template', 'error');
+    }
+}
+
+// Currency Converter Functions
+function openCurrencyConverterModal() {
+    document.getElementById('amountUSD').value = '';
+    document.getElementById('amountKES').value = '';
+    document.getElementById('currencyConverterModal').style.display = 'flex';
+}
+
+function closeCurrencyConverterModal() {
+    document.getElementById('currencyConverterModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.getElementById('currencyConverterModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCurrencyConverterModal();
+    }
+});
+
+function convertUSDToKES() {
+    const usdAmount = parseFloat(document.getElementById('amountUSD').value);
+    const exchangeRate = parseFloat(document.getElementById('exchangeRateDisplay').textContent);
+
+    if (!isNaN(usdAmount) && usdAmount >= 0) {
+        const kesAmount = usdAmount * exchangeRate;
+        document.getElementById('amountKES').value = kesAmount.toFixed(2);
+    } else {
+        document.getElementById('amountKES').value = '';
+    }
+}
+
+function convertKESToUSD() {
+    const kesAmount = parseFloat(document.getElementById('amountKES').value);
+    const exchangeRate = parseFloat(document.getElementById('exchangeRateDisplay').textContent);
+
+    if (!isNaN(kesAmount) && kesAmount >= 0 && exchangeRate > 0) {
+        const usdAmount = kesAmount / exchangeRate;
+        document.getElementById('amountUSD').value = usdAmount.toFixed(2);
+    } else {
+        document.getElementById('amountUSD').value = '';
     }
 }
 </script>
