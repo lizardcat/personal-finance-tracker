@@ -456,7 +456,12 @@ def profile():
                 errors.append('Monthly income cannot be negative')
         except ValueError:
             errors.append('Invalid monthly income amount')
-        
+
+        # Validate currency
+        from config import Config
+        if default_currency not in Config.DEFAULT_CURRENCIES:
+            errors.append('Invalid currency')
+
         if errors:
             if request.is_json:
                 return jsonify({'errors': errors}), 400
@@ -768,7 +773,8 @@ def update_profile():
             errors.append('Invalid monthly income amount')
 
         # Validate currency
-        if default_currency not in ['USD', 'KES']:
+        from config import Config
+        if default_currency not in Config.DEFAULT_CURRENCIES:
             errors.append('Invalid currency')
 
         if errors:
