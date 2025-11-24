@@ -13,8 +13,26 @@ import re
 import os
 from urllib.parse import urlparse, urljoin
 from datetime import datetime
+from threading import Thread
 
 auth_bp = Blueprint('auth', __name__)
+
+def send_async_email(app, msg):
+    """Send email asynchronously in a background thread"""
+    with app.app_context():
+        try:
+            from app import mail
+            mail.send(msg)
+            app.logger.info(f'Email sent successfully to {msg.recipients}')
+        except Exception as e:
+            app.logger.error(f'Failed to send email to {msg.recipients}: {str(e)}', exc_info=True)
+
+def send_email_async(msg):
+    """Send email in a background thread to avoid blocking the request"""
+    app = current_app._get_current_object()
+    thread = Thread(target=send_async_email, args=(app, msg))
+    thread.daemon = True
+    thread.start()
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per 15 minutes", methods=['POST'])
@@ -190,10 +208,8 @@ def register():
             )
             current_app.logger.info(f'New user registered: {username} from IP {request.remote_addr}')
 
-            # Send welcome email (if email is configured)
+            # Send welcome email asynchronously (if email is configured)
             try:
-                from app import mail  # Import here to avoid circular import
-
                 # Check if mail is configured
                 mail_username = current_app.config.get('MAIL_USERNAME')
                 mail_server = current_app.config.get('MAIL_SERVER')
@@ -368,12 +384,13 @@ Made with ❤️ by Alex Raza - https://github.com/lizardcat
                         '''
                     )
 
-                    mail.send(msg)
-                    current_app.logger.info(f'Welcome email sent successfully to {email}')
+                    # Send email asynchronously to avoid blocking the worker
+                    send_email_async(msg)
+                    current_app.logger.info(f'Welcome email queued for sending to {email}')
 
             except Exception as email_error:
                 # Don't fail registration if email fails - just log it
-                current_app.logger.warning(f'Failed to send welcome email to {email}: {str(email_error)}')
+                current_app.logger.warning(f'Failed to queue welcome email to {email}: {str(email_error)}')
 
             success_msg = f'Welcome {username}! Your account has been created successfully.'
 
@@ -838,8 +855,7 @@ def forgot_password():
                 db.session.add(reset_token)
                 db.session.commit()
 
-                # Send reset email
-                from app import mail  # Import here to avoid circular import
+                # Send reset email asynchronously
                 reset_url = url_for('auth.reset_password', token=reset_token.token, _external=True)
 
                 msg = Message(
@@ -870,7 +886,8 @@ def forgot_password():
                 </html>
                 '''
 
-                mail.send(msg)
+                # Send email asynchronously to avoid blocking the worker
+                send_email_async(msg)
 
                 # Log password reset request
                 log_security_event(
