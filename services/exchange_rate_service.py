@@ -9,11 +9,22 @@ logger = logging.getLogger(__name__)
 
 class ExchangeRateService:
     """Service for managing exchange rates"""
-    
+
     def __init__(self):
         self.api_key = Config.EXCHANGE_API_KEY
         self.api_url = Config.EXCHANGE_API_URL
         self.cache_duration = timedelta(hours=1)  # Cache rates for 1 hour
+
+        # Create persistent HTTP session with connection pooling to prevent connection leaks
+        self.session = requests.Session()
+        # Configure connection pooling
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=10,
+            pool_maxsize=20,
+            max_retries=3
+        )
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
     
     def get_rate(self, base_currency, target_currency):
         """Get exchange rate between two currencies"""
@@ -85,14 +96,15 @@ class ExchangeRateService:
         """Fetch exchange rate from external API"""
         if not self.api_url:
             raise Exception("Exchange rate API URL not configured")
-        
+
         url = f"{self.api_url}{base_currency}"
-        
+
         headers = {}
         if self.api_key:
             headers['Authorization'] = f"Bearer {self.api_key}"
-        
-        response = requests.get(url, headers=headers, timeout=10)
+
+        # Use persistent session instead of requests.get to enable connection pooling
+        response = self.session.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
         data = response.json()

@@ -50,11 +50,11 @@ def dashboard():
     
     # Get expense categories for chart
     expense_categories = [cat for cat in categories if cat.category_type == 'expense']
-    
-    # Get exchange rate (USD to KES)
-    exchange_rate = ExchangeRate.query.filter_by(base_currency='USD', target_currency='KES').first()
-    current_rate = exchange_rate.rate if exchange_rate else Decimal('150.0')
-    
+
+    # Get exchange rate from API (uses cache, fetches if stale)
+    from services.exchange_rate_service import exchange_rate_service
+    current_rate = exchange_rate_service.get_rate('USD', 'KES')
+
     return render_template('dashboard.html',
                          categories=categories,
                          expense_categories=expense_categories,
@@ -73,16 +73,16 @@ def budget():
     """Budget management page"""
     categories = BudgetCategory.query.filter_by(user_id=current_user.id)\
         .order_by(BudgetCategory.category_type, BudgetCategory.name).all()
-    
-    # Get exchange rate
-    exchange_rate = ExchangeRate.query.filter_by(base_currency='USD', target_currency='KES').first()
-    current_rate = exchange_rate.rate if exchange_rate else Decimal('150.0')
-    
+
+    # Get exchange rate from API (uses cache, fetches if stale)
+    from services.exchange_rate_service import exchange_rate_service
+    current_rate = exchange_rate_service.get_rate('USD', 'KES')
+
     # Calculate totals by category type
     income_total = sum(cat.allocated_amount for cat in categories if cat.category_type == 'income')
     expense_total = sum(cat.allocated_amount for cat in categories if cat.category_type == 'expense')
     saving_total = sum(cat.allocated_amount for cat in categories if cat.category_type == 'saving')
-    
+
     return render_template('budget.html',
                          categories=categories,
                          exchange_rate=current_rate,

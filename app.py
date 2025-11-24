@@ -48,6 +48,7 @@ def create_app(config_name=None):
     from api.milestones import milestones_api_bp
     from api.reports import reports_api_bp
     from api.reconciliation import reconciliation_api_bp
+    from api.exchange_rates import exchange_rates_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -56,6 +57,7 @@ def create_app(config_name=None):
     app.register_blueprint(milestones_api_bp, url_prefix='/api/milestones')
     app.register_blueprint(reports_api_bp, url_prefix='/api/reports')
     app.register_blueprint(reconciliation_api_bp, url_prefix='/api/reconciliation')
+    app.register_blueprint(exchange_rates_bp)
 
     # Enable HTTPS enforcement in production
     if config_name == 'production':
@@ -120,11 +122,16 @@ def create_app(config_name=None):
         if config_name == 'production':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         return response
-    
-    # Create tables on first run
-    with app.app_context():
-        db.create_all()
-    
+
+    # Create tables on first run (development only)
+    # In production, use migrations or init_db CLI command instead
+    if config_name == 'development':
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as e:
+                app.logger.warning(f'Could not create tables: {e}')
+
     return app
 
 # Create the Flask app

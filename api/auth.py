@@ -162,7 +162,16 @@ def register():
             
             db.session.add(user)
             db.session.commit()
-            
+
+            # Create starter budget templates for the new user
+            try:
+                from database.budget_templates import create_starter_templates
+                create_starter_templates(user.id)
+                current_app.logger.info(f'Created starter budget templates for new user: {username}')
+            except Exception as e:
+                current_app.logger.warning(f'Failed to create starter templates for {username}: {e}')
+                # Don't fail registration if template creation fails
+
             # Log in the new user
             login_user(user)
 
@@ -181,7 +190,15 @@ def register():
                 from app import mail
 
                 # Check if mail is configured
-                if current_app.config.get('MAIL_USERNAME'):
+                mail_username = current_app.config.get('MAIL_USERNAME')
+                mail_server = current_app.config.get('MAIL_SERVER')
+
+                if not mail_username or not mail_server:
+                    current_app.logger.warning(
+                        f'Email not configured - skipping welcome email for {email}. '
+                        f'Set MAIL_USERNAME and MAIL_SERVER in .env to enable emails.'
+                    )
+                elif mail_username:
                     dashboard_url = url_for('main.dashboard', _external=True)
                     faq_url = url_for('main.faq', _external=True)
 
@@ -347,9 +364,7 @@ Made with ❤️ by Alex Raza - https://github.com/lizardcat
                     )
 
                     mail.send(msg)
-                    current_app.logger.info(f'Welcome email sent to {email}')
-                else:
-                    current_app.logger.info(f'Email not configured - skipping welcome email for {email}')
+                    current_app.logger.info(f'Welcome email sent successfully to {email}')
 
             except Exception as email_error:
                 # Don't fail registration if email fails - just log it
@@ -447,7 +462,12 @@ def profile():
                 errors.append('Monthly income cannot be negative')
         except ValueError:
             errors.append('Invalid monthly income amount')
-        
+
+        # Validate currency
+        from config import Config
+        if default_currency not in Config.DEFAULT_CURRENCIES:
+            errors.append('Invalid currency')
+
         if errors:
             if request.is_json:
                 return jsonify({'errors': errors}), 400
@@ -759,7 +779,8 @@ def update_profile():
             errors.append('Invalid monthly income amount')
 
         # Validate currency
-        if default_currency not in ['USD', 'KES']:
+        from config import Config
+        if default_currency not in Config.DEFAULT_CURRENCIES:
             errors.append('Invalid currency')
 
         if errors:
