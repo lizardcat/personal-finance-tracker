@@ -27,9 +27,10 @@ class Config:
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     
-    # Exchange rate API
+    # Exchange rate API (V6)
     EXCHANGE_API_KEY = os.environ.get('EXCHANGE_API_KEY')
-    EXCHANGE_API_URL = 'https://api.exchangerate-api.com/v4/latest/'
+    # V6 API URL format: https://v6.exchangerate-api.com/v6/{API_KEY}/latest/{BASE_CURRENCY}
+    # API key is now part of the URL path, not a header
     
     # File upload settings
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
