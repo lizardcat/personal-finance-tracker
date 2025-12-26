@@ -3,22 +3,17 @@ Logging configuration for Personal Finance Tracker
 Provides structured logging with file rotation and different levels
 """
 import logging
-import os
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from datetime import datetime
 
 
 def setup_logging(app):
     """
-    Configure application logging with proper handlers and formatters
+    Configure application logging for Railway serverless environment
+    All logs go to stdout/stderr for Railway's log collection
 
     Args:
         app: Flask application instance
     """
-    # Create logs directory if it doesn't exist
-    if not os.path.exists('logs'):
-        os.mkdir('logs')
-
     # Determine log level based on environment
     if app.config.get('DEBUG'):
         log_level = logging.DEBUG
@@ -27,54 +22,22 @@ def setup_logging(app):
 
     # Set up formatters
     detailed_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s in %(module)s (%(pathname)s:%(lineno)d): %(message)s'
+        '[%(asctime)s] %(levelname)s [%(name)s] in %(module)s (%(pathname)s:%(lineno)d): %(message)s'
     )
 
     simple_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s: %(message)s'
+        '[%(asctime)s] %(levelname)s [%(name)s]: %(message)s'
     )
 
-    # Main application log - rotating by size
-    app_handler = RotatingFileHandler(
-        'logs/finance_tracker.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=10
-    )
-    app_handler.setFormatter(detailed_formatter)
-    app_handler.setLevel(log_level)
+    # Main console handler for all logs
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(detailed_formatter)
+    console_handler.setLevel(log_level)
 
-    # Error log - rotating daily, keep 30 days
-    error_handler = TimedRotatingFileHandler(
-        'logs/errors.log',
-        when='midnight',
-        interval=1,
-        backupCount=30
-    )
+    # Error console handler (stderr)
+    error_handler = logging.StreamHandler()
     error_handler.setFormatter(detailed_formatter)
     error_handler.setLevel(logging.ERROR)
-
-    # Security log for authentication and authorization events
-    security_handler = RotatingFileHandler(
-        'logs/security.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=20
-    )
-    security_handler.setFormatter(detailed_formatter)
-    security_handler.setLevel(logging.INFO)
-
-    # Audit log for financial transactions (never rotate, archive manually)
-    audit_handler = RotatingFileHandler(
-        'logs/audit.log',
-        maxBytes=50 * 1024 * 1024,  # 50MB
-        backupCount=100  # Keep many backups for compliance
-    )
-    audit_handler.setFormatter(detailed_formatter)
-    audit_handler.setLevel(logging.INFO)
-
-    # Console handler for development
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(simple_formatter)
-    console_handler.setLevel(log_level)
 
     # Configure root logger
     app.logger.setLevel(log_level)
@@ -82,24 +45,22 @@ def setup_logging(app):
     # Remove default handlers
     app.logger.handlers.clear()
 
-    # Add our custom handlers
-    app.logger.addHandler(app_handler)
-    app.logger.addHandler(error_handler)
+    # Add console handlers
     app.logger.addHandler(console_handler)
+    app.logger.addHandler(error_handler)
 
     # Create separate loggers for specific purposes
     security_logger = logging.getLogger('security')
     security_logger.setLevel(logging.INFO)
-    security_logger.addHandler(security_handler)
     security_logger.addHandler(console_handler)
 
     audit_logger = logging.getLogger('audit')
     audit_logger.setLevel(logging.INFO)
-    audit_logger.addHandler(audit_handler)
+    audit_logger.addHandler(console_handler)
 
     # Log application startup
     app.logger.info('=' * 80)
-    app.logger.info(f'Finance Tracker Application Starting')
+    app.logger.info(f'Finance Tracker Application Starting (Railway Serverless Mode)')
     app.logger.info(f'Environment: {app.config.get("ENV", "unknown")}')
     app.logger.info(f'Debug Mode: {app.config.get("DEBUG", False)}')
     app.logger.info(f'Database: {app.config.get("SQLALCHEMY_DATABASE_URI", "").split("://")[0] if app.config.get("SQLALCHEMY_DATABASE_URI") else "unknown"}')

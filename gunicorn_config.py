@@ -9,10 +9,10 @@ bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
 backlog = 2048
 
 # Worker processes
-# For Railway/Heroku: Use fewer workers to fit within memory limits
-# Default to 2 workers (good for 512MB RAM) instead of CPU * 2 + 1
-# Can be overridden with GUNICORN_WORKERS env var
-workers = int(os.environ.get('GUNICORN_WORKERS', 2))
+# For Railway serverless (free tier): Use 1 worker for faster cold starts and lower memory usage
+# This optimizes for the sleep/wake cycle where apps restart frequently
+# Can be overridden with GUNICORN_WORKERS env var (e.g., set to 2 for paid plans)
+workers = int(os.environ.get('GUNICORN_WORKERS', 1))
 worker_class = 'sync'
 worker_connections = 1000
 max_requests = 1000  # Restart workers after this many requests to prevent memory leaks

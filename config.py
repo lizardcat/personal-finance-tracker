@@ -11,13 +11,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///finance_tracker.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Database pool configuration - CRITICAL for preventing memory leaks
-    # Apply to all environments to prevent connection exhaustion
+    # Database pool configuration optimized for Railway serverless (sleep/wake cycles)
+    # Smaller pool sizes and faster recycling handle stale connections better
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,           # Maximum number of connections to keep open
-        'pool_recycle': 3600,      # Recycle connections after 1 hour (prevents stale connections)
-        'pool_pre_ping': True,     # Verify connections are alive before using them
-        'max_overflow': 20         # Maximum overflow connections beyond pool_size
+        'pool_size': 2,            # Small pool for serverless (reduced from 10)
+        'pool_recycle': 300,       # Recycle after 5 min (reduced from 1 hour) - handles sleep/wake better
+        'pool_pre_ping': True,     # Test connections before use - CRITICAL for handling stale connections after sleep
+        'max_overflow': 3,         # Small overflow pool (reduced from 20)
+        'pool_timeout': 10         # Connection timeout in seconds
     }
 
     # Flask-Login settings
